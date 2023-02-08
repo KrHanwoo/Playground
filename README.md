@@ -1,7 +1,8 @@
 # Playground
 ### Minecraft server plugin which aims for anonymity
+### Supported Minecraft version: `1.19.3`
 
-Inspired from [noonmaru/aimless](https://github.com/noonmaru/aimless) ([monun](https://github.com/monun))
+Inspired by [noonmaru/aimless](https://github.com/noonmaru/aimless) ([monun](https://github.com/monun))
 
 ## Configuration
 ### Because of this project having been created for fun, it doesn't have many configurations.
