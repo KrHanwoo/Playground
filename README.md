@@ -6,6 +6,8 @@ Inspired from [noonmaru/aimless](https://github.com/noonmaru/aimless) ([monun](h
 ## Configuration
 ### Because of this project having been created for fun, it doesn't have many configurations.
 
+`config.yml` file structure
+
 * Spawn Seed: The random seed for the player's initial spawn location.
 * skin
   * textures: The encoded base64 string which represents the player's skin info
