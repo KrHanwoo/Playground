@@ -1,0 +1,17 @@
+name: Playground
+version: '${project.version}'
+main: com.hanwoo.playground.Playground
+api-version: 1.19
+depend:
+  - ProtocolLib
+
+commands:
+  e:
+    permission: playground.emote
+    aliases:
+      - emote
+      - ㄷ
+
+permissions:
+  playground.emote:
+    default: true
