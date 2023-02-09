@@ -14,6 +14,9 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
+import kotlin.math.pow
+
+val sessionChars = ('A'..'Z') + ('0'..'9')
 
 fun Any.comp(): Component {
     return Component.text(this.toString())
@@ -83,4 +86,21 @@ fun WrappedGameProfile.fakeProfile(player: Player): WrappedGameProfile {
     val flag = player.isOp || player.team?.players?.contains(this.uuid) == true
     if (flag && this.name != null) return this
     return this.withName(fakeName)
+}
+
+val Player.atSpawn: Boolean
+    get() {
+        if (!(-1..0).contains(chunk.x)) return false
+        if (!(-1..0).contains(chunk.z)) return false
+        if (!(-14..15).contains(this.location.x.toInt())) return false
+        if (!(-14..15).contains(this.location.z.toInt())) return false
+        return true
+    }
+
+fun generateSessionString(): String {
+    var str = ""
+    repeat(5){
+        str+= sessionChars.random()
+    }
+    return str
 }

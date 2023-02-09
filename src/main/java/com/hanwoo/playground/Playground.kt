@@ -18,11 +18,13 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scoreboard.Team
+import java.util.*
 import kotlin.properties.Delegates
 
 lateinit var plugin: JavaPlugin
 var spawnSeed by Delegates.notNull<Int>()
 const val fakeName = "???"
+val playerSession = mutableMapOf<UUID, String>()
 
 class Playground : JavaPlugin() {
     init {
@@ -32,7 +34,7 @@ class Playground : JavaPlugin() {
     override fun onEnable() {
         saveDefaultConfig()
         spawnSeed = config.getInt("spawnSeed")
-        skin=WrappedSignedProperty("textures", config.getString("skin.textures"), config.getString("skin.signature"))
+        skin = WrappedSignedProperty("textures", config.getString("skin.textures"), config.getString("skin.signature"))
         TeamManager.loadTeams(config)
 
         server.pluginManager.registerEvents(Events(), plugin)
@@ -41,6 +43,7 @@ class Playground : JavaPlugin() {
 
         Bukkit.getWorlds().forEach {
             it.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false)
+            it.setGameRule(GameRule.KEEP_INVENTORY, true)
             val border = it.worldBorder
             border.center = Location(it, 0.0, 0.0, 0.0)
             border.size = 16000.0
@@ -49,8 +52,11 @@ class Playground : JavaPlugin() {
             spawnLocation = getHighestBlockAt(0, 0).location
         }
 
-        createTeam("Player", NamedTextColor.RED)
+        Bukkit.getOnlinePlayers().forEach { playerSession[it.uniqueId] = generateSessionString() }
+
+        createTeam("Player", null)
         createTeam("Team", NamedTextColor.GREEN)
+        createTeam("Enemy", NamedTextColor.RED)
 
         getCommand("e")?.setExecutor(object : CommandExecutor, TabCompleter {
             override fun onCommand(
@@ -79,11 +85,9 @@ class Playground : JavaPlugin() {
                 return mutableListOf()
             }
         })
-
-
     }
 
-    private fun createTeam(name: String, color: NamedTextColor) {
+    private fun createTeam(name: String, color: NamedTextColor?) {
         val scoreboard = Bukkit.getScoreboardManager().mainScoreboard
         val team = scoreboard.getTeam(name) ?: scoreboard.registerNewTeam(name)
         team.setCanSeeFriendlyInvisibles(false)

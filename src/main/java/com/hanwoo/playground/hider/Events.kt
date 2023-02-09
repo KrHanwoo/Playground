@@ -1,26 +1,27 @@
 package com.hanwoo.playground.hider
 
-import com.comphenix.protocol.PacketType
-import com.comphenix.protocol.ProtocolLibrary
-import com.comphenix.protocol.events.PacketContainer
-import com.comphenix.protocol.wrappers.*
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent
 import com.hanwoo.playground.*
-import com.hanwoo.playground.misc.Emote
-import com.hanwoo.playground.misc.TeamManager.team
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.format.TextDecoration
+import net.minecraft.world.InventoryUtils
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.Location
+import org.bukkit.Sound
+import org.bukkit.craftbukkit.v1_19_R2.CraftWorld
+import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack
+import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.entity.PlayerDeathEvent
+import org.bukkit.event.inventory.PrepareAnvilEvent
 import org.bukkit.event.player.*
-import org.bukkit.util.NumberConversions
+import org.bukkit.inventory.ItemStack
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -30,20 +31,17 @@ import kotlin.math.floor
 
 class Events : Listener {
 
+    private val enteredSpawn = mutableMapOf<UUID, Boolean>()
+
     @EventHandler
     fun onServerListPing(e: PaperServerListPingEvent) {
         e.setHidePlayers(true)
     }
 
     @EventHandler
-    fun onPlayerLogin(e: PlayerLoginEvent) {
-        if (e.result == PlayerLoginEvent.Result.KICK_FULL) e.allow()
-    }
-
-    @EventHandler
     fun onPlayerJoin(e: PlayerJoinEvent) {
         e.joinMessage()?.let {
-            Bukkit.getLogger().info(it.text)
+            Bukkit.getConsoleSender().sendMessage(it)
             e.player.sendMessage(it)
         }
         e.joinMessage(null)
@@ -51,30 +49,31 @@ class Events : Listener {
         player.compassTarget = Bukkit.getWorlds().first().spawnLocation
         player.isGlowing = true
         Bukkit.getScoreboardManager().mainScoreboard.getTeam("Player")?.addEntry(fakeName)
+        playerSession[player.uniqueId] = generateSessionString()
 
-        val team = player.team
-        team?.players?.forEach { uuid ->
-            val plr = Bukkit.getPlayer(uuid) ?: return@forEach
-            PacketContainer(PacketType.Play.Server.SCOREBOARD_TEAM).apply {
-                strings.write(0, "Team")
-                integers.write(0, 3)
-                getSpecificModifier(Collection::class.java).write(0,team.players.map { Bukkit.getOfflinePlayer(it) }.map { it.name })
-                ProtocolLibrary.getProtocolManager().sendServerPacket(plr, this)
-            }
-        }
+        PacketManager.sendJoinPackets(player)
+    }
 
-        if (!player.isOp) {
-            val packet = PacketContainer(PacketType.Play.Server.PLAYER_INFO)
-            val playerDataList = mutableListOf<PlayerInfoData>()
-            for (offlinePlayer in Bukkit.getOfflinePlayers().asSequence()) {
-                val profile = if (offlinePlayer is Player) WrappedGameProfile.fromPlayer(offlinePlayer)
-                else WrappedGameProfile.fromOfflinePlayer(offlinePlayer)
-                playerDataList += profile.fakeProfile(e.player).playerInfoData()
-            }
-
-            packet.playerInfoActions.write(0, mutableSetOf(EnumWrappers.PlayerInfoAction.ADD_PLAYER))
-            packet.playerInfoDataLists.write(1, playerDataList)
-            ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet)
+    @EventHandler
+    fun onMove(e: PlayerMoveEvent) {
+        if (e.player.atSpawn) {
+            if (enteredSpawn[e.player.uniqueId] == true) return
+            enteredSpawn[e.player.uniqueId] = true
+            e.player.sendActionBar(
+                comps(
+                    "채팅 세션".comp(0xffd84a).decorate(TextDecoration.BOLD),
+                    " ID".comp(0xffd84a),
+                    " | ".comp(ChatColor.DARK_GRAY),
+                    playerSession[e.player.uniqueId]?.comp(0x9eff7a) ?: "NULL".comp()
+                )
+            )
+            e.player.playSound(e.player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
+        } else {
+            if (enteredSpawn[e.player.uniqueId] == false) return
+            enteredSpawn[e.player.uniqueId] = false
+            e.player.sendActionBar(
+                "스폰을 벗어났습니다".comp(0xff9b4a).decorate(TextDecoration.BOLD)
+            )
         }
     }
 
@@ -87,7 +86,7 @@ class Events : Listener {
     @EventHandler
     fun onQuit(e: PlayerQuitEvent) {
         e.quitMessage()?.let {
-            Bukkit.getLogger().info(it.text)
+            Bukkit.getConsoleSender().sendMessage(it)
             e.player.sendMessage(it)
         }
         e.quitMessage(null)
@@ -95,11 +94,26 @@ class Events : Listener {
 
     @EventHandler
     fun onDeath(e: PlayerDeathEvent) {
-        e.deathMessage()?.let { Bukkit.getLogger().info(it.text) }
+        e.deathMessage()?.let { Bukkit.getConsoleSender().sendMessage(it) }
         e.deathMessage(null)
 
+        val drops = mutableListOf<ItemStack>()
+        e.player.inventory.contents?.filterNotNull()?.forEach { item ->
+            val clonedItem = item.clone()
+            val amount = item.amount
+            repeat(amount) {
+                if (Math.random() < 0.5) item.amount--
+            }
+            clonedItem.amount = amount - item.amount
+            drops += clonedItem
+        }
+        val loc = e.player.location
+        drops.filter { it.getEnchantmentLevel(Enchantment.VANISHING_CURSE) == 0 }.forEach {
+            InventoryUtils.a((e.player.world as CraftWorld).handle, loc.x, loc.y, loc.z, CraftItemStack.asNMSCopy(it))
+        }
+
         val message = when (e.entity.killer) {
-            is Player -> "A player died".comp(ChatColor.DARK_RED)
+            is Player -> "A player died".comp(ChatColor.DARK_RED).decorate(TextDecoration.BOLD)
             else -> "A player died".comp(ChatColor.RED)
         }.hoverEvent(
             HoverEvent.showText(
@@ -113,10 +127,19 @@ class Events : Listener {
     }
 
     @EventHandler
-    fun onCommand(e: PlayerCommandSendEvent) {
+    fun onCommandSend(e: PlayerCommandSendEvent) {
+        if (e.player.isOp) return
         e.commands.clear()
         plugin.getCommand("e")?.aliases?.let { e.commands.addAll(it) }
         e.commands.add("e")
+    }
+
+    @EventHandler
+    fun onCommand(e: PlayerCommandPreprocessEvent) {
+        if (e.player.isOp) return
+        val msg = e.message.removePrefix("/").split(" ")[0]
+        if (msg == "e" || plugin.getCommand("e")?.aliases?.contains(msg) == true) return
+        e.isCancelled = true
     }
 
     @EventHandler
@@ -155,6 +178,15 @@ class Events : Listener {
     @EventHandler
     fun onBed(e: PlayerBedEnterEvent) {
         e.setUseBed(Event.Result.DENY)
+    }
+
+    @EventHandler
+    fun onAnvil(e: PrepareAnvilEvent) {
+        e.result?.apply {
+            itemMeta = itemMeta.apply {
+                this.displayName(this.displayName()?.removeLang()?.comp())
+            }
+        }
     }
 
     private fun getSpawnLocation(uuid: UUID): Location {
