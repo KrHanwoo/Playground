@@ -1,5 +1,6 @@
 package com.hanwoo.playground.hider
 
+import com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent
 import com.hanwoo.playground.*
 import com.hanwoo.playground.misc.GlobalLogger
@@ -46,7 +47,7 @@ class Events : Listener {
     @EventHandler
     fun onPlayerJoin(e: PlayerJoinEvent) {
         e.joinMessage()?.let {
-            Bukkit.getConsoleSender().sendMessage(it)
+            broadcastOP(it)
             GlobalLogger.log(it.text)
             e.player.team.log(it.text)
             e.player.team.broadcast(it)
@@ -60,40 +61,26 @@ class Events : Listener {
         playerSession[player.uniqueId] = generateSessionString()
 
         PacketManager.sendJoinPackets(player)
+
+        spawnNotify(e.player)
     }
 
     @EventHandler
     fun onMove(e: PlayerMoveEvent) {
-        if (e.player.atSpawn) {
-            if (enteredSpawn[e.player.uniqueId] == true) return
-            enteredSpawn[e.player.uniqueId] = true
-            e.player.sendActionBar(
-                comps(
-                    "Entered Spawn".comp(0xffd84a),
-                    " | ".comp(ChatColor.DARK_GRAY),
-                    playerSession[e.player.uniqueId]?.comp(0x9eff7a) ?: "NULL".comp()
-                )
-            )
-            e.player.playSound(e.player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
-        } else {
-            if (enteredSpawn[e.player.uniqueId] == false) return
-            enteredSpawn[e.player.uniqueId] = false
-            e.player.sendActionBar(
-                "Left Spawn".comp(0xff9b4a)
-            )
-        }
+        spawnNotify(e.player)
     }
 
     @EventHandler
     fun onSpawn(e: PlayerSpawnLocationEvent) {
         if (e.player.hasPlayedBefore()) return
         e.spawnLocation = getSpawnLocation(e.player.uniqueId)
+        spawnNotify(e.player)
     }
 
     @EventHandler
     fun onQuit(e: PlayerQuitEvent) {
         e.quitMessage()?.let {
-            Bukkit.getConsoleSender().sendMessage(it)
+            broadcastOP(it)
             GlobalLogger.log(it.text)
             e.player.team.log(it.text)
             e.player.team.broadcast(it)
@@ -104,7 +91,7 @@ class Events : Listener {
     @EventHandler
     fun onDeath(e: PlayerDeathEvent) {
         e.deathMessage()?.let {
-            Bukkit.getConsoleSender().sendMessage(it)
+            broadcastOP(it)
             GlobalLogger.log(it.text)
             e.player.team.log(it.text)
         }
@@ -189,7 +176,7 @@ class Events : Listener {
     @EventHandler
     fun onAdvancement(e: PlayerAdvancementDoneEvent) {
         e.message()?.let {
-            Bukkit.getConsoleSender().sendMessage(it)
+            broadcastOP(it)
             GlobalLogger.log(it.text)
             e.player.team.log(it.text)
             e.player.team.broadcast(it)
@@ -222,6 +209,43 @@ class Events : Listener {
         }
     }
 
+    @EventHandler
+    fun onTeleport(e: PlayerTeleportEvent) {
+        Bukkit.getScheduler().scheduleSyncDelayedTask(plugin) {
+            spawnNotify(e.player)
+        }
+    }
+
+    @EventHandler
+    fun onRespawn(e: PlayerRespawnEvent) {
+        Bukkit.getScheduler().scheduleSyncDelayedTask(plugin) {
+            spawnNotify(e.player)
+        }
+    }
+
+    private fun spawnNotify(player: Player) {
+        if (player.atSpawn) {
+            if (enteredSpawn[player.uniqueId] == true) return
+            enteredSpawn[player.uniqueId] = true
+            player.sendActionBar(
+                comps(
+                    "Entered Spawn".comp(0xffd84a),
+                    " | ".comp(ChatColor.DARK_GRAY),
+                    playerSession[player.uniqueId]?.comp(0x9eff7a) ?: "NULL".comp()
+                )
+            )
+            player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
+            player.team.broadcast("${player.name} Entered Spawn".comp(0xffd84a))
+        } else {
+            if (enteredSpawn[player.uniqueId] == false) return
+            enteredSpawn[player.uniqueId] = false
+            player.sendActionBar(
+                "Left Spawn".comp(0xff9b4a)
+            )
+            player.team.broadcast("${player.name} Left Spawn".comp(0xff9b4a))
+        }
+    }
+
     private fun getSpawnLocation(uuid: UUID): Location {
         val random = Random(uuid.hashCode().toLong() xor spawnSeed.toLong())
         val world = Bukkit.getWorlds().first()
@@ -230,6 +254,11 @@ class Events : Listener {
         val z = random.nextDouble() * size - size / 2.0
         val block = world.getHighestBlockAt(floor(x).toInt(), floor(z).toInt())
         return block.location.add(0.5, 1.0, 0.5)
+    }
+
+    private fun broadcastOP(msg: Component){
+        Bukkit.getConsoleSender().sendMessage(msg)
+        Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { it.sendMessage(msg) }
     }
 }
 

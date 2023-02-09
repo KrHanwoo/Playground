@@ -56,6 +56,9 @@ object TeamManager {
             listOf(uniqueId),
             null
         )
+
+    val OfflinePlayer.hasTeam: Boolean
+        get() = teams.any { it.players.contains(uniqueId) }
 }
 
 data class GameTeam(val name: String, val players: List<UUID>, val writer: PrintWriter?) {

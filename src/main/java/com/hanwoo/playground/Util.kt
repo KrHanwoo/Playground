@@ -68,23 +68,23 @@ fun serverDate(): Component {
     )
 }
 
-fun WrappedGameProfile.playerInfoData(): PlayerInfoData {
+fun WrappedGameProfile.playerInfoData(gameMode: EnumWrappers.NativeGameMode = EnumWrappers.NativeGameMode.SURVIVAL): PlayerInfoData {
     this.properties.removeAll("textures")
     this.properties.put("textures", skin)
     return PlayerInfoData(
         this.uuid,
         0,
         false,
-        EnumWrappers.NativeGameMode.SURVIVAL,
+        gameMode,
         this,
-        WrappedChatComponent.fromText(this.name),
+        null,
         null
     )
 }
 
 fun WrappedGameProfile.fakeProfile(player: Player): WrappedGameProfile {
     val flag = player.isOp || player.team.players.contains(uuid)
-    if (flag && name != null) return this
+    if (flag) return this
     return withName(fakeName)
 }
 

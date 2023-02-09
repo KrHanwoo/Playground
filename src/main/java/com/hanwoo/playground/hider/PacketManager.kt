@@ -12,8 +12,11 @@ import com.comphenix.protocol.wrappers.WrappedGameProfile
 import com.comphenix.protocol.wrappers.WrappedSignedProperty
 import com.hanwoo.playground.*
 import com.hanwoo.playground.misc.GlobalLogger
+import com.hanwoo.playground.misc.TeamManager
+import com.hanwoo.playground.misc.TeamManager.hasTeam
 import com.hanwoo.playground.misc.TeamManager.team
 import org.bukkit.Bukkit
+import org.bukkit.World
 import org.bukkit.entity.Player
 
 
@@ -39,7 +42,7 @@ object PacketManager {
             override fun onPacketSending(e: PacketEvent) {
                 val dataLists = e.packet.playerInfoDataLists
                 dataLists.write(1, dataLists.read(1)
-                    .map { it.profile.fakeProfile(e.player).playerInfoData() })
+                    .map { it.profile.fakeProfile(e.player).playerInfoData(it.gameMode) })
             }
         })
 
@@ -71,12 +74,28 @@ object PacketManager {
                 }
                 if (player.atSpawn) {
                     val session = playerSession[player.uniqueId] ?: return
-                    val selfChat = comps("[${session}]".comp(0x9eff7a), " $msg".comp())
+                    val selfChat = comps("[${session}]".comp(0xfcdd3f), " $msg".comp())
                     player.sendMessage(selfChat)
-                    val publicChat = comps("[${session}]".comp(0xff564a), " $msg".comp())
+                    val dimensionColor = when (player.world.environment) {
+                        World.Environment.NORMAL -> 0x65f046
+                        World.Environment.NETHER -> 0xff5c40
+                        World.Environment.THE_END -> 0xb65cff
+                        else -> 0xbfbfbf
+                    }
+                    val dimensionName = when (player.world.environment) {
+                        World.Environment.NORMAL -> "OVERWORLD"
+                        World.Environment.NETHER -> "NETHER"
+                        World.Environment.THE_END -> "END"
+                        else -> "NULL"
+                    }
+                    val publicChat = comps("[${session}]".comp(dimensionColor), " $msg".comp())
                     Bukkit.getOnlinePlayers().filter { it.atSpawn && !it.isOp && it.uniqueId != player.uniqueId }
                         .forEach { it.sendMessage(publicChat) }
-                    val logChat = comps("[${session}]".comp(0xff564a), " <${player.name}> ".comp(), msg.comp())
+                    val logChat = comps(
+                        "[${dimensionName}] [${session}]".comp(dimensionColor),
+                        " <${player.name}> ".comp(),
+                        msg.comp()
+                    )
                     Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { it.sendMessage(logChat) }
                     Bukkit.getConsoleSender().sendMessage(logChat)
                     GlobalLogger.log(logChat.text)
@@ -84,6 +103,14 @@ object PacketManager {
                 }
                 player.team.broadcast(chat)
                 player.team.log(chat.text)
+
+                if (player.hasTeam) {
+                    val teamChat = "[Team-${player.team.name}] <${player.name}> $msg".comp()
+                    Bukkit.getOnlinePlayers().filter { it.uniqueId != player.uniqueId }
+                        .filter { it.isOp }.forEach { it.sendMessage(teamChat) }
+                    Bukkit.getConsoleSender().sendMessage(teamChat)
+                    return
+                }
                 Bukkit.getOnlinePlayers().filter { it.uniqueId != player.uniqueId }
                     .filter { it.isOp }.forEach { it.sendMessage(chat) }
                 Bukkit.getConsoleSender().sendMessage(chat)
