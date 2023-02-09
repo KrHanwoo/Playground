@@ -31,7 +31,7 @@ object TeamManager {
             }
 
             file.parent.createDirectories()
-            val writer = PrintWriter(BufferedWriter(FileWriter(file.toFile())))
+            val writer = PrintWriter(BufferedWriter(FileWriter(file.toFile(), Charsets.UTF_8)))
 
             val list = section.getStringList(k)
             teams += GameTeam(k, list.mapNotNull {

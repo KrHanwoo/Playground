@@ -25,7 +25,7 @@ object GlobalLogger {
         }
 
         file.parent.createDirectories()
-        writer = PrintWriter(BufferedWriter(FileWriter(file.toFile())))
+        writer = PrintWriter(BufferedWriter(FileWriter(file.toFile(), Charsets.UTF_8)))
     }
 
     fun closeWriter() {
