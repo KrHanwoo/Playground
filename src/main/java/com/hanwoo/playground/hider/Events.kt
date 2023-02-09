@@ -6,9 +6,11 @@ import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TeamManager.team
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
-import net.kyori.adventure.text.format.TextDecoration
 import net.minecraft.world.InventoryUtils
-import org.bukkit.*
+import org.bukkit.Bukkit
+import org.bukkit.ChatColor
+import org.bukkit.Location
+import org.bukkit.Sound
 import org.bukkit.craftbukkit.v1_19_R2.CraftWorld
 import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
@@ -17,7 +19,6 @@ import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.entity.EntityDamageByBlockEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
@@ -47,8 +48,8 @@ class Events : Listener {
         e.joinMessage()?.let {
             Bukkit.getConsoleSender().sendMessage(it)
             GlobalLogger.log(it.text)
-            e.player.team?.log(it.text)
-            e.player.sendMessage(it)
+            e.player.team.log(it.text)
+            e.player.team.broadcast(it)
         }
         e.joinMessage(null)
         val player = e.player
@@ -94,8 +95,8 @@ class Events : Listener {
         e.quitMessage()?.let {
             Bukkit.getConsoleSender().sendMessage(it)
             GlobalLogger.log(it.text)
-            e.player.team?.log(it.text)
-            e.player.sendMessage(it)
+            e.player.team.log(it.text)
+            e.player.team.broadcast(it)
         }
         e.quitMessage(null)
     }
@@ -105,7 +106,7 @@ class Events : Listener {
         e.deathMessage()?.let {
             Bukkit.getConsoleSender().sendMessage(it)
             GlobalLogger.log(it.text)
-            e.player.team?.log(it.text)
+            e.player.team.log(it.text)
         }
 
         val drops = mutableListOf<ItemStack>()
@@ -123,17 +124,17 @@ class Events : Listener {
             InventoryUtils.a((e.player.world as CraftWorld).handle, loc.x, loc.y, loc.z, CraftItemStack.asNMSCopy(it))
         }
 
+        val hover = HoverEvent.showText(
+            LocalDateTime.now(ZoneId.of("Asia/Seoul")).format(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd kk:mm:ss")
+            ).comp(ChatColor.GRAY)
+        )
         val killer = e.entity.killer
         val flag = (killer is Player) && (killer.uniqueId != e.player.uniqueId)
-        val message = "A player died".comp(if (flag) ChatColor.DARK_RED else ChatColor.RED)
-            .hoverEvent(
-                HoverEvent.showText(
-                    LocalDateTime.now(ZoneId.of("Asia/Seoul")).format(
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd kk:mm:ss")
-                    ).comp(ChatColor.GRAY)
-                )
-            )
-        Bukkit.getOnlinePlayers().forEach { it.sendMessage(message) }
+        val message = "A player died".comp(if (flag) ChatColor.DARK_RED else ChatColor.RED).hoverEvent(hover)
+        Bukkit.getOnlinePlayers().filter { it.team != e.player.team }.forEach { it.sendMessage(message) }
+        val teamMsg = "${e.player.name} died".comp(if (flag) ChatColor.DARK_RED else ChatColor.RED).hoverEvent(hover)
+        e.player.team.broadcast(teamMsg)
 
         if (flag) e.deathMessage()?.text?.let { killer?.team?.log(it) }
         e.deathMessage(null)
@@ -189,9 +190,9 @@ class Events : Listener {
     fun onAdvancement(e: PlayerAdvancementDoneEvent) {
         e.message()?.let {
             Bukkit.getConsoleSender().sendMessage(it)
-            e.player.sendMessage(it)
             GlobalLogger.log(it.text)
-            e.player.team?.log(it.text)
+            e.player.team.log(it.text)
+            e.player.team.broadcast(it)
         }
         e.message(null)
     }

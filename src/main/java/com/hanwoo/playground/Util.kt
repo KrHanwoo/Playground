@@ -14,7 +14,6 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
-import kotlin.math.pow
 
 val sessionChars = ('A'..'Z') + ('0'..'9')
 
@@ -31,6 +30,7 @@ fun Any.comp(color: Int): Component {
 }
 
 fun Any.comp(color: ChatColor): Component {
+    @Suppress("DEPRECATION")
     return this.comp().color(TextColor.color(color.asBungee().color.rgb))
 }
 
@@ -77,15 +77,15 @@ fun WrappedGameProfile.playerInfoData(): PlayerInfoData {
         false,
         EnumWrappers.NativeGameMode.SURVIVAL,
         this,
-        WrappedChatComponent.fromText(""),
+        WrappedChatComponent.fromText(this.name),
         null
     )
 }
 
 fun WrappedGameProfile.fakeProfile(player: Player): WrappedGameProfile {
-    val flag = player.isOp || player.team?.players?.contains(this.uuid) == true
-    if (flag && this.name != null) return this
-    return this.withName(fakeName)
+    val flag = player.isOp || player.team.players.contains(uuid)
+    if (flag && name != null) return this
+    return withName(fakeName)
 }
 
 val Player.atSpawn: Boolean
@@ -99,8 +99,8 @@ val Player.atSpawn: Boolean
 
 fun generateSessionString(): String {
     var str = ""
-    repeat(5){
-        str+= sessionChars.random()
+    repeat(5) {
+        str += sessionChars.random()
     }
     return str
 }

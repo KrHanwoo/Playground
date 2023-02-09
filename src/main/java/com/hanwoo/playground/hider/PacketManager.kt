@@ -11,7 +11,6 @@ import com.comphenix.protocol.wrappers.PlayerInfoData
 import com.comphenix.protocol.wrappers.WrappedGameProfile
 import com.comphenix.protocol.wrappers.WrappedSignedProperty
 import com.hanwoo.playground.*
-import com.hanwoo.playground.misc.GameTeam
 import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TeamManager.team
 import org.bukkit.Bukkit
@@ -83,10 +82,10 @@ object PacketManager {
                     GlobalLogger.log(logChat.text)
                     return
                 }
-                player.sendMessage(chat)
-                player.team?.log(chat.text)
+                player.team.broadcast(chat)
+                player.team.log(chat.text)
                 Bukkit.getOnlinePlayers().filter { it.uniqueId != player.uniqueId }
-                    .filter { it.isOp || it.team == player.team }.forEach { it.sendMessage(chat) }
+                    .filter { it.isOp }.forEach { it.sendMessage(chat) }
                 Bukkit.getConsoleSender().sendMessage(chat)
             }
         })
@@ -105,7 +104,21 @@ object PacketManager {
             }
         }
 
-        val team = player.team ?: GameTeam("", listOf(player.uniqueId), null)
+        if (!player.isOp) {
+            val packet = PacketContainer(PacketType.Play.Server.PLAYER_INFO)
+            val playerDataList = mutableListOf<PlayerInfoData>()
+            for (offlinePlayer in Bukkit.getOfflinePlayers().asSequence()) {
+                val profile = if (offlinePlayer is Player) WrappedGameProfile.fromPlayer(offlinePlayer)
+                else WrappedGameProfile.fromOfflinePlayer(offlinePlayer)
+                playerDataList += profile.withName(offlinePlayer.name).fakeProfile(player).playerInfoData()
+            }
+
+            packet.playerInfoActions.write(0, mutableSetOf(EnumWrappers.PlayerInfoAction.ADD_PLAYER))
+            packet.playerInfoDataLists.write(1, playerDataList)
+            ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet)
+        }
+
+        val team = player.team
         team.players.forEach { uuid ->
             val plr = Bukkit.getPlayer(uuid) ?: return@forEach
             PacketContainer(PacketType.Play.Server.SCOREBOARD_TEAM).apply {
@@ -116,20 +129,6 @@ object PacketManager {
                     team.players.map { Bukkit.getOfflinePlayer(it) }.map { it.name })
                 ProtocolLibrary.getProtocolManager().sendServerPacket(plr, this)
             }
-        }
-
-        if (!player.isOp) {
-            val packet = PacketContainer(PacketType.Play.Server.PLAYER_INFO)
-            val playerDataList = mutableListOf<PlayerInfoData>()
-            for (offlinePlayer in Bukkit.getOfflinePlayers().asSequence()) {
-                val profile = if (offlinePlayer is Player) WrappedGameProfile.fromPlayer(offlinePlayer)
-                else WrappedGameProfile.fromOfflinePlayer(offlinePlayer)
-                playerDataList += profile.fakeProfile(player).playerInfoData()
-            }
-
-            packet.playerInfoActions.write(0, mutableSetOf(EnumWrappers.PlayerInfoAction.ADD_PLAYER))
-            packet.playerInfoDataLists.write(1, playerDataList)
-            ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet)
         }
     }
 }

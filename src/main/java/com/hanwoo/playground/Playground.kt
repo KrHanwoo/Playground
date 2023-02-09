@@ -1,11 +1,10 @@
 package com.hanwoo.playground
 
 import com.comphenix.protocol.wrappers.WrappedSignedProperty
+import com.hanwoo.playground.emote.EmoteHandler
 import com.hanwoo.playground.hider.Events
 import com.hanwoo.playground.hider.PacketManager
 import com.hanwoo.playground.hider.skin
-import com.hanwoo.playground.emote.Emote
-import com.hanwoo.playground.emote.EmoteHandler
 import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TabInfo
 import com.hanwoo.playground.misc.TeamManager
@@ -14,11 +13,6 @@ import org.bukkit.Bukkit
 import org.bukkit.GameRule
 import org.bukkit.Location
 import org.bukkit.World
-import org.bukkit.command.Command
-import org.bukkit.command.CommandExecutor
-import org.bukkit.command.CommandSender
-import org.bukkit.command.TabCompleter
-import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scoreboard.Team
 import java.io.File

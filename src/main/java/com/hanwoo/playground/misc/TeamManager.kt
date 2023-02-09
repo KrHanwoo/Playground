@@ -3,6 +3,8 @@ package com.hanwoo.playground.misc
 import com.hanwoo.playground.logsFolder
 import com.hanwoo.playground.misc.GlobalLogger.logFormatter
 import com.hanwoo.playground.misc.GlobalLogger.logNameFormatter
+import net.kyori.adventure.text.Component
+import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import org.bukkit.configuration.file.FileConfiguration
 import java.io.BufferedWriter
@@ -48,8 +50,12 @@ object TeamManager {
         teams.forEach { it.writer?.close() }
     }
 
-    val OfflinePlayer.team: GameTeam?
-        get() = teams.find { it.players.contains(this.uniqueId) }
+    val OfflinePlayer.team: GameTeam
+        get() = teams.firstOrNull { it.players.contains(uniqueId) } ?: GameTeam(
+            name ?: "NULL",
+            listOf(uniqueId),
+            null
+        )
 }
 
 data class GameTeam(val name: String, val players: List<UUID>, val writer: PrintWriter?) {
@@ -58,5 +64,9 @@ data class GameTeam(val name: String, val players: List<UUID>, val writer: Print
         val msg = "${logFormatter.format(Calendar.getInstance().time)} $text"
         writer.println(msg)
         writer.flush()
+    }
+
+    fun broadcast(msg: Component) {
+        players.mapNotNull { Bukkit.getPlayer(it) }.forEach { it.sendMessage(msg) }
     }
 }
