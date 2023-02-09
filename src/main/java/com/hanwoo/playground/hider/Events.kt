@@ -2,22 +2,26 @@ package com.hanwoo.playground.hider
 
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent
 import com.hanwoo.playground.*
+import com.hanwoo.playground.misc.GlobalLogger
+import com.hanwoo.playground.misc.TeamManager.team
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.TextDecoration
 import net.minecraft.world.InventoryUtils
-import org.bukkit.Bukkit
-import org.bukkit.ChatColor
-import org.bukkit.Location
-import org.bukkit.Sound
+import org.bukkit.*
 import org.bukkit.craftbukkit.v1_19_R2.CraftWorld
 import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.SignChangeEvent
+import org.bukkit.event.entity.EntityDamageByBlockEvent
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.PrepareAnvilEvent
 import org.bukkit.event.player.*
@@ -42,12 +46,15 @@ class Events : Listener {
     fun onPlayerJoin(e: PlayerJoinEvent) {
         e.joinMessage()?.let {
             Bukkit.getConsoleSender().sendMessage(it)
+            GlobalLogger.log(it.text)
+            e.player.team?.log(it.text)
             e.player.sendMessage(it)
         }
         e.joinMessage(null)
         val player = e.player
-        player.compassTarget = Bukkit.getWorlds().first().spawnLocation
+        player.compassTarget = getSpawnLocation(player.uniqueId)
         player.isGlowing = true
+        enteredSpawn[player.uniqueId] = false
         Bukkit.getScoreboardManager().mainScoreboard.getTeam("Player")?.addEntry(fakeName)
         playerSession[player.uniqueId] = generateSessionString()
 
@@ -61,8 +68,7 @@ class Events : Listener {
             enteredSpawn[e.player.uniqueId] = true
             e.player.sendActionBar(
                 comps(
-                    "채팅 세션".comp(0xffd84a).decorate(TextDecoration.BOLD),
-                    " ID".comp(0xffd84a),
+                    "Entered Spawn".comp(0xffd84a),
                     " | ".comp(ChatColor.DARK_GRAY),
                     playerSession[e.player.uniqueId]?.comp(0x9eff7a) ?: "NULL".comp()
                 )
@@ -72,7 +78,7 @@ class Events : Listener {
             if (enteredSpawn[e.player.uniqueId] == false) return
             enteredSpawn[e.player.uniqueId] = false
             e.player.sendActionBar(
-                "스폰을 벗어났습니다".comp(0xff9b4a).decorate(TextDecoration.BOLD)
+                "Left Spawn".comp(0xff9b4a)
             )
         }
     }
@@ -87,6 +93,8 @@ class Events : Listener {
     fun onQuit(e: PlayerQuitEvent) {
         e.quitMessage()?.let {
             Bukkit.getConsoleSender().sendMessage(it)
+            GlobalLogger.log(it.text)
+            e.player.team?.log(it.text)
             e.player.sendMessage(it)
         }
         e.quitMessage(null)
@@ -94,8 +102,11 @@ class Events : Listener {
 
     @EventHandler
     fun onDeath(e: PlayerDeathEvent) {
-        e.deathMessage()?.let { Bukkit.getConsoleSender().sendMessage(it) }
-        e.deathMessage(null)
+        e.deathMessage()?.let {
+            Bukkit.getConsoleSender().sendMessage(it)
+            GlobalLogger.log(it.text)
+            e.player.team?.log(it.text)
+        }
 
         val drops = mutableListOf<ItemStack>()
         e.player.inventory.contents?.filterNotNull()?.forEach { item ->
@@ -112,18 +123,20 @@ class Events : Listener {
             InventoryUtils.a((e.player.world as CraftWorld).handle, loc.x, loc.y, loc.z, CraftItemStack.asNMSCopy(it))
         }
 
-        val message = when (e.entity.killer) {
-            is Player -> "A player died".comp(ChatColor.DARK_RED).decorate(TextDecoration.BOLD)
-            else -> "A player died".comp(ChatColor.RED)
-        }.hoverEvent(
-            HoverEvent.showText(
-                LocalDateTime.now(ZoneId.of("Asia/Seoul")).format(
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd kk:mm:ss")
-                ).comp(ChatColor.GRAY)
+        val killer = e.entity.killer
+        val flag = (killer is Player) && (killer.uniqueId != e.player.uniqueId)
+        val message = "A player died".comp(if (flag) ChatColor.DARK_RED else ChatColor.RED)
+            .hoverEvent(
+                HoverEvent.showText(
+                    LocalDateTime.now(ZoneId.of("Asia/Seoul")).format(
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd kk:mm:ss")
+                    ).comp(ChatColor.GRAY)
+                )
             )
-        )
-
         Bukkit.getOnlinePlayers().forEach { it.sendMessage(message) }
+
+        if (flag) e.deathMessage()?.text?.let { killer?.team?.log(it) }
+        e.deathMessage(null)
     }
 
     @EventHandler
@@ -143,6 +156,23 @@ class Events : Listener {
     }
 
     @EventHandler
+    fun onDamageByBlock(e: EntityDamageByBlockEvent) {
+        if (e.cause != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) return
+        e.damage = e.damage / 2
+    }
+
+    @EventHandler
+    fun onDamageByEntity(e: EntityDamageByEntityEvent) {
+        if (!listOf(
+                EntityType.ENDER_CRYSTAL,
+                EntityType.PRIMED_TNT,
+                EntityType.MINECART_TNT
+            ).contains(e.damager.type)
+        ) return
+        e.damage = e.damage / 2
+    }
+
+    @EventHandler
     fun onPlayerSign(e: SignChangeEvent) {
         val block = e.block
         val x = block.x
@@ -158,8 +188,10 @@ class Events : Listener {
     @EventHandler
     fun onAdvancement(e: PlayerAdvancementDoneEvent) {
         e.message()?.let {
-            Bukkit.getLogger().info(it.text)
+            Bukkit.getConsoleSender().sendMessage(it)
             e.player.sendMessage(it)
+            GlobalLogger.log(it.text)
+            e.player.team?.log(it.text)
         }
         e.message(null)
     }

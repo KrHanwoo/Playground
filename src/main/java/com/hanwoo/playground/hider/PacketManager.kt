@@ -12,6 +12,7 @@ import com.comphenix.protocol.wrappers.WrappedGameProfile
 import com.comphenix.protocol.wrappers.WrappedSignedProperty
 import com.hanwoo.playground.*
 import com.hanwoo.playground.misc.GameTeam
+import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TeamManager.team
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -79,10 +80,13 @@ object PacketManager {
                     val logChat = comps("[${session}]".comp(0xff564a), " <${player.name}> ".comp(), msg.comp())
                     Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { it.sendMessage(logChat) }
                     Bukkit.getConsoleSender().sendMessage(logChat)
+                    GlobalLogger.log(logChat.text)
                     return
                 }
                 player.sendMessage(chat)
-                Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { it.sendMessage(chat) }
+                player.team?.log(chat.text)
+                Bukkit.getOnlinePlayers().filter { it.uniqueId != player.uniqueId }
+                    .filter { it.isOp || it.team == player.team }.forEach { it.sendMessage(chat) }
                 Bukkit.getConsoleSender().sendMessage(chat)
             }
         })
@@ -101,7 +105,7 @@ object PacketManager {
             }
         }
 
-        val team = player.team ?: GameTeam("", listOf(player.uniqueId))
+        val team = player.team ?: GameTeam("", listOf(player.uniqueId), null)
         team.players.forEach { uuid ->
             val plr = Bukkit.getPlayer(uuid) ?: return@forEach
             PacketContainer(PacketType.Play.Server.SCOREBOARD_TEAM).apply {

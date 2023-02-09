@@ -1,4 +1,4 @@
-package com.hanwoo.playground.misc
+package com.hanwoo.playground.emote
 
 import org.bukkit.Location
 import org.bukkit.Material
