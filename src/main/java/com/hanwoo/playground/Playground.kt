@@ -10,10 +10,13 @@ import com.hanwoo.playground.misc.TabInfo
 import com.hanwoo.playground.misc.TeamManager
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.title.Title
 import org.bukkit.*
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
 import java.io.File
+import java.time.Duration
 import java.util.*
 import kotlin.properties.Delegates
 
@@ -23,6 +26,7 @@ const val fakeName = "???"
 val playerSession = mutableMapOf<UUID, String>()
 val logsFolder = File(Bukkit.getPluginsFolder().parentFile, "PlaygroundLogs")
 val pvpCooldown = mutableMapOf<UUID, Long>()
+var restartTime: Long = System.currentTimeMillis() + 1000 * 60 * 60 * 12
 
 class Playground : JavaPlugin() {
     init {
@@ -57,6 +61,39 @@ class Playground : JavaPlugin() {
                     ?.sendActionBar("PVP MODE".comp(ChatColor.DARK_RED).decorate(TextDecoration.BOLD))
             }
         }, 0, 1)
+
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, {
+            val timeLeft = (restartTime - System.currentTimeMillis()) / 1000
+            if ((5..30).contains(timeLeft))
+                Bukkit.getOnlinePlayers().forEach {
+                    it.showTitle(
+                        Title.title(
+                            "".comp(),
+                            "Server will restart soon".comp(ChatColor.RED),
+                            Title.Times.times(
+                                Duration.ZERO,
+                                Duration.ofSeconds(5),
+                                Duration.ZERO
+                            )
+                        )
+                    )
+                }
+            if ((0..5).contains(timeLeft))
+                Bukkit.getOnlinePlayers().forEach {
+                    it.showTitle(
+                        Title.title(
+                            "Server Restart".comp(ChatColor.DARK_RED),
+                            "".comp(),
+                            Title.Times.times(
+                                Duration.ZERO,
+                                Duration.ofSeconds(5),
+                                Duration.ZERO
+                            )
+                        )
+                    )
+                }
+            if (timeLeft <= 0) Bukkit.spigot().restart()
+        }, 20, 20)
 
         createTeam("Player", null)
         createTeam("Team", NamedTextColor.GREEN)

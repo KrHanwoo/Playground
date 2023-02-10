@@ -1,13 +1,11 @@
 package com.hanwoo.playground.hider
 
-import com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent
 import com.hanwoo.playground.*
 import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TeamManager.team
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
-import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minecraft.world.InventoryUtils
 import org.bukkit.Bukkit
@@ -31,7 +29,6 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.PrepareAnvilEvent
 import org.bukkit.event.player.*
 import org.bukkit.inventory.ItemStack
-import org.bukkit.scheduler.BukkitRunnable
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.time.Duration
 import java.time.LocalDateTime
@@ -79,7 +76,9 @@ class Events : Listener {
     fun onSpawn(e: PlayerSpawnLocationEvent) {
         if (e.player.hasPlayedBefore()) return
         e.spawnLocation = getSpawnLocation(e.player.uniqueId)
-        spawnNotify(e.player)
+        Bukkit.getScheduler().scheduleSyncDelayedTask(plugin) {
+            spawnNotify(e.player)
+        }
     }
 
     @EventHandler
@@ -99,6 +98,12 @@ class Events : Listener {
     }
 
     @EventHandler
+    fun onRestart(e: PlayerKickEvent) {
+        if (e.cause != PlayerKickEvent.Cause.RESTART_COMMAND) return
+        e.reason("Server Restart".comp(0xffed7a))
+    }
+
+    @EventHandler
     fun onDeath(e: PlayerDeathEvent) {
         e.deathMessage()?.let {
             broadcastOP(it)
@@ -107,6 +112,7 @@ class Events : Listener {
         }
 
         dropItems(e.player)
+        pvpCooldown[e.player.uniqueId] = 0
 
         val hover = HoverEvent.showText(
             LocalDateTime.now(ZoneId.of("Asia/Seoul")).format(
@@ -159,12 +165,17 @@ class Events : Listener {
 
     @EventHandler
     fun onDamageByPlayer(e: EntityDamageByEntityEvent) {
-        if (e.entityType != EntityType.PLAYER) return
+        val player = e.entity
+        if (player !is Player) return
         if (e.damager is Projectile) {
-            if ((e.damager as Projectile).shooter !is Player) return
-            setPvpCooldown(e.entity as Player)
+            val shooter = (e.damager as Projectile).shooter
+            if (shooter !is Player) return
+            if (shooter.uniqueId == player.uniqueId) return
+            if (shooter.team == player.team) return
+            setPvpCooldown(player)
         } else if (e.damager is Player) {
-            setPvpCooldown(e.entity as Player)
+            if ((e.damager as Player).team == player.team) return
+            setPvpCooldown(player)
         }
     }
 
