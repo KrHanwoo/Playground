@@ -10,7 +10,7 @@ import java.util.*
 import kotlin.math.roundToInt
 
 class TabInfo : Runnable {
-    private val header = "PLAYGROUND".comp(0xED4245)
+    private val header = comps("PLAYGROUND".comp(0xED4245), Component.newline())
     private val colGood = TextColor.color(99, 242, 109)
     private val colOk = TextColor.color(255, 203, 59)
     private val colBad = TextColor.color(255, 84, 69)
@@ -41,6 +41,7 @@ class TabInfo : Runnable {
         )
         Bukkit.getOnlinePlayers().forEach {
             val serverInfo = comps(
+                Component.newline(),
                 "TPS ".comp(9211020),
                 tps.comp(tpsColor(tps)),
                 "   MSPT ".comp(9211020),
@@ -50,7 +51,7 @@ class TabInfo : Runnable {
             )
             it.sendPlayerListHeaderAndFooter(
                 header,
-                Component.join(JoinConfiguration.newlines(), date, serverInfo, restartTime)
+                Component.join(JoinConfiguration.newlines(), date,restartTime, serverInfo )
             )
         }
     }
