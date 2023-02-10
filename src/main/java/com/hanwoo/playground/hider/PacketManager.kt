@@ -153,7 +153,7 @@ object PacketManager {
                 integers.write(0, 3)
                 getSpecificModifier(Collection::class.java).write(
                     0,
-                    team.players.map { Bukkit.getOfflinePlayer(it) }.map { it.name })
+                    team.players.map { Bukkit.getOfflinePlayer(it) }.mapNotNull { it.name })
                 ProtocolLibrary.getProtocolManager().sendServerPacket(plr, this)
             }
         }
