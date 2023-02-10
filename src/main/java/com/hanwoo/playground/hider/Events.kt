@@ -7,6 +7,8 @@ import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TeamManager.team
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.title.Title
 import net.minecraft.world.InventoryUtils
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
@@ -17,6 +19,7 @@ import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -28,7 +31,9 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.PrepareAnvilEvent
 import org.bukkit.event.player.*
 import org.bukkit.inventory.ItemStack
+import org.bukkit.scheduler.BukkitRunnable
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -86,6 +91,11 @@ class Events : Listener {
             e.player.team.broadcast(it)
         }
         e.quitMessage(null)
+
+        if ((pvpCooldown[e.player.uniqueId] ?: 0) > System.currentTimeMillis()) {
+            dropItems(e.player, true)
+            pvpCooldown[e.player.uniqueId] = 0
+        }
     }
 
     @EventHandler
@@ -96,20 +106,7 @@ class Events : Listener {
             e.player.team.log(it.text)
         }
 
-        val drops = mutableListOf<ItemStack>()
-        e.player.inventory.contents?.filterNotNull()?.forEach { item ->
-            val clonedItem = item.clone()
-            val amount = item.amount
-            repeat(amount) {
-                if (Math.random() < 0.5) item.amount--
-            }
-            clonedItem.amount = amount - item.amount
-            drops += clonedItem
-        }
-        val loc = e.player.location
-        drops.filter { it.getEnchantmentLevel(Enchantment.VANISHING_CURSE) == 0 }.forEach {
-            InventoryUtils.a((e.player.world as CraftWorld).handle, loc.x, loc.y, loc.z, CraftItemStack.asNMSCopy(it))
-        }
+        dropItems(e.player)
 
         val hover = HoverEvent.showText(
             LocalDateTime.now(ZoneId.of("Asia/Seoul")).format(
@@ -159,6 +156,32 @@ class Events : Listener {
         ) return
         e.damage = e.damage / 2
     }
+
+    @EventHandler
+    fun onDamageByPlayer(e: EntityDamageByEntityEvent) {
+        if (e.entityType != EntityType.PLAYER) return
+        if (e.damager is Projectile) {
+            if ((e.damager as Projectile).shooter !is Player) return
+            setPvpCooldown(e.entity as Player)
+        } else if (e.damager is Player) {
+            setPvpCooldown(e.entity as Player)
+        }
+    }
+
+    private fun setPvpCooldown(player: Player) {
+        if ((pvpCooldown[player.uniqueId] ?: 0) < System.currentTimeMillis()) {
+            player.showTitle(
+                Title.title(
+                    "".comp(),
+                    "PVP MODE".comp(ChatColor.RED),
+                    Title.Times.times(Duration.ofSeconds(0), Duration.ofSeconds(2), Duration.ofSeconds(1))
+                )
+            )
+            player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
+        }
+        pvpCooldown[player.uniqueId] = System.currentTimeMillis() + 30 * 1000
+    }
+
 
     @EventHandler
     fun onPlayerSign(e: SignChangeEvent) {
@@ -223,6 +246,34 @@ class Events : Listener {
         }
     }
 
+    private fun dropItems(player: Player, delay: Boolean = false) {
+        val drops = mutableListOf<ItemStack>()
+        player.inventory.contents?.filterNotNull()?.forEach { item ->
+            val clonedItem = item.clone()
+            val amount = item.amount
+            repeat(amount) {
+                if (Math.random() < 0.5) item.amount--
+            }
+            clonedItem.amount = amount - item.amount
+            drops += clonedItem
+        }
+        val loc = player.location
+
+        if (delay) {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(plugin) {
+                itemDrop(drops, loc)
+            }
+            return
+        }
+        itemDrop(drops, loc)
+    }
+
+    private fun itemDrop(items: List<ItemStack>, loc: Location) {
+        items.filter { it.getEnchantmentLevel(Enchantment.VANISHING_CURSE) == 0 }.forEach {
+            InventoryUtils.a((loc.world as CraftWorld).handle, loc.x, loc.y, loc.z, CraftItemStack.asNMSCopy(it))
+        }
+    }
+
     private fun spawnNotify(player: Player) {
         if (player.atSpawn) {
             if (enteredSpawn[player.uniqueId] == true) return
@@ -256,7 +307,7 @@ class Events : Listener {
         return block.location.add(0.5, 1.0, 0.5)
     }
 
-    private fun broadcastOP(msg: Component){
+    private fun broadcastOP(msg: Component) {
         Bukkit.getConsoleSender().sendMessage(msg)
         Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { it.sendMessage(msg) }
     }

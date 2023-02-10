@@ -9,10 +9,8 @@ import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TabInfo
 import com.hanwoo.playground.misc.TeamManager
 import net.kyori.adventure.text.format.NamedTextColor
-import org.bukkit.Bukkit
-import org.bukkit.GameRule
-import org.bukkit.Location
-import org.bukkit.World
+import net.kyori.adventure.text.format.TextDecoration
+import org.bukkit.*
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scoreboard.Team
 import java.io.File
@@ -24,6 +22,7 @@ var spawnSeed by Delegates.notNull<Int>()
 const val fakeName = "???"
 val playerSession = mutableMapOf<UUID, String>()
 val logsFolder = File(Bukkit.getPluginsFolder().parentFile, "PlaygroundLogs")
+val pvpCooldown = mutableMapOf<UUID, Long>()
 
 class Playground : JavaPlugin() {
     init {
@@ -51,6 +50,13 @@ class Playground : JavaPlugin() {
         Bukkit.getWorlds().first { it.environment == World.Environment.NETHER }.setBorderSize(16000)
 
         Bukkit.getOnlinePlayers().forEach { playerSession[it.uniqueId] = generateSessionString() }
+
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, {
+            pvpCooldown.filter { it.value > System.currentTimeMillis() }.forEach {
+                Bukkit.getPlayer(it.key)
+                    ?.sendActionBar("PVP MODE".comp(ChatColor.DARK_RED).decorate(TextDecoration.BOLD))
+            }
+        }, 0, 1)
 
         createTeam("Player", null)
         createTeam("Team", NamedTextColor.GREEN)
