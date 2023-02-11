@@ -1,12 +1,12 @@
 package com.hanwoo.playground.misc
 
+import com.hanwoo.playground.getTime
 import com.hanwoo.playground.logsFolder
 import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.PrintWriter
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
-import java.util.*
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 
@@ -17,10 +17,10 @@ object GlobalLogger {
 
     init {
         var num = 1
-        var save = "${logNameFormatter.format(Calendar.getInstance().time)}_$num.log"
+        var save = "${logNameFormatter.format(getTime())}_$num.log"
         var file = Paths.get(logsFolder.toString(), "Global", save)
         while (file.exists()) {
-            save = "${logNameFormatter.format(Calendar.getInstance().time)}_${++num}.log"
+            save = "${logNameFormatter.format(getTime())}_${++num}.log"
             file = Paths.get(logsFolder.toString(), "Global", save)
         }
 
@@ -33,7 +33,7 @@ object GlobalLogger {
     }
 
     fun log(text: String) {
-        val msg = "${logFormatter.format(Calendar.getInstance().time)} $text"
+        val msg = "${logFormatter.format(getTime())} $text"
         writer.println(msg)
         writer.flush()
     }

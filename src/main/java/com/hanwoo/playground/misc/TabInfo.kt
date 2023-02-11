@@ -18,7 +18,7 @@ class TabInfo : Runnable {
 
     override fun run() {
         val date = comps(
-            dateFormatter.format(Calendar.getInstance().time).comp(0xC9C7C9),
+            dateFormatter.format(getTime()).comp(0xC9C7C9),
             Component.newline(),
             serverDate()
         )

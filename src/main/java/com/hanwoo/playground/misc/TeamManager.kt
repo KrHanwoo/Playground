@@ -1,5 +1,6 @@
 package com.hanwoo.playground.misc
 
+import com.hanwoo.playground.getTime
 import com.hanwoo.playground.logsFolder
 import com.hanwoo.playground.misc.GlobalLogger.logFormatter
 import com.hanwoo.playground.misc.GlobalLogger.logNameFormatter
@@ -25,10 +26,10 @@ object TeamManager {
             val teamName = "Team-$k"
 
             var num = 1
-            var save = "${logNameFormatter.format(Calendar.getInstance().time)}_$num.log"
+            var save = "${logNameFormatter.format(getTime())}_$num.log"
             var file = Paths.get(logsFolder.toString(), teamName, save)
             while (file.exists()) {
-                save = "${logNameFormatter.format(Calendar.getInstance().time)}_${++num}.log"
+                save = "${logNameFormatter.format(getTime())}_${++num}.log"
                 file = Paths.get(logsFolder.toString(), teamName, save)
             }
 
@@ -64,7 +65,7 @@ object TeamManager {
 data class GameTeam(val name: String, val players: List<UUID>, val writer: PrintWriter?) {
     fun log(text: String) {
         writer ?: return
-        val msg = "${logFormatter.format(Calendar.getInstance().time)} $text"
+        val msg = "${logFormatter.format(getTime())} $text"
         writer.println(msg)
         writer.flush()
     }

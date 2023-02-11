@@ -14,6 +14,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
+import java.util.*
 
 val sessionChars = ('A'..'Z') + ('0'..'9')
 
@@ -103,4 +104,8 @@ fun generateSessionString(): String {
         str += sessionChars.random()
     }
     return str
+}
+
+fun getTime(): Date{
+    return Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul")).time
 }
