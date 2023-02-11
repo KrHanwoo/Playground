@@ -9,6 +9,7 @@ import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import org.bukkit.configuration.file.FileConfiguration
 import java.io.BufferedWriter
+import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
 import java.nio.file.Paths
@@ -23,19 +24,6 @@ object TeamManager {
     fun loadTeams(config: FileConfiguration) {
         val section = config.getConfigurationSection("teams") ?: return
         section.getKeys(false).forEach { k ->
-            val teamName = "Team-$k"
-
-            var num = 1
-            var save = "${logNameFormatter.format(getTime())}_$num.log"
-            var file = Paths.get(logsFolder.toString(), teamName, save)
-            while (file.exists()) {
-                save = "${logNameFormatter.format(getTime())}_${++num}.log"
-                file = Paths.get(logsFolder.toString(), teamName, save)
-            }
-
-            file.parent.createDirectories()
-            val writer = PrintWriter(BufferedWriter(FileWriter(file.toFile(), Charsets.UTF_8)))
-
             val list = section.getStringList(k)
             teams += GameTeam(k, list.mapNotNull {
                 try {
@@ -43,8 +31,24 @@ object TeamManager {
                 } catch (e: Exception) {
                     null
                 }
-            }, writer)
+            }, getWriter(k, false))
         }
+    }
+
+    private fun getWriter(name: String, guest: Boolean): PrintWriter {
+        var num = 1
+        val folder = if (guest) Paths.get(logsFolder.toString(), "Guests", name)
+        else Paths.get(logsFolder.toString(), "Team-$name")
+
+        var save = "${logNameFormatter.format(getTime())}_$num.log"
+        var file = Paths.get(folder.toString(), save)
+        while (file.exists()) {
+            save = "${logNameFormatter.format(getTime())}_${++num}.log"
+            file = Paths.get(folder.toString(), save)
+        }
+
+        file.parent.createDirectories()
+        return PrintWriter(BufferedWriter(FileWriter(file.toFile(), Charsets.UTF_8)))
     }
 
     fun closeWriters() {
@@ -53,16 +57,17 @@ object TeamManager {
 
     val OfflinePlayer.team: GameTeam
         get() = teams.firstOrNull { it.players.contains(uniqueId) } ?: GameTeam(
-            name ?: "NULL",
+            uniqueId.toString(),
             listOf(uniqueId),
-            null
-        )
+            getWriter(uniqueId.toString(), true),
+            true
+        ).also { teams += it }
 
     val OfflinePlayer.hasTeam: Boolean
-        get() = teams.any { it.players.contains(uniqueId) }
+        get() = teams.any { it.players.contains(uniqueId) && !it.guest }
 }
 
-data class GameTeam(val name: String, val players: List<UUID>, val writer: PrintWriter?) {
+data class GameTeam(val name: String, val players: List<UUID>, val writer: PrintWriter?, val guest: Boolean = false) {
     fun log(text: String) {
         writer ?: return
         val msg = "${logFormatter.format(getTime())} $text"
