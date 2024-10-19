@@ -5,7 +5,7 @@
 Inspired by [noonmaru/aimless](https://github.com/noonmaru/aimless) ([monun](https://github.com/monun))
 
 ## Configuration
-### Because of this project having been created for fun, it doesn't have many configurations.
+### Since this project having been created for fun, it doesn't have many configurations.
 
 `config.yml` file structure
 
