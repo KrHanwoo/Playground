@@ -98,6 +98,8 @@ class Playground : JavaPlugin() {
         createTeam("Team", NamedTextColor.GREEN)
         createTeam("Enemy", NamedTextColor.RED)
 
+        val team = Bukkit.getScoreboardManager().mainScoreboard.getTeam("Player")
+        if (team?.hasEntry(fakeName) != true) team?.addEntry(fakeName)
         getCommand("e")?.setExecutor(EmoteHandler())
     }
 

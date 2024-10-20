@@ -14,6 +14,8 @@ import com.hanwoo.playground.*
 import com.hanwoo.playground.misc.GlobalLogger
 import com.hanwoo.playground.misc.TeamManager.hasTeam
 import com.hanwoo.playground.misc.TeamManager.team
+import net.minecraft.network.protocol.common.ServerboundClientInformationPacket
+import net.minecraft.server.level.ClientInformation
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.entity.Player
@@ -29,7 +31,9 @@ object PacketManager {
             PacketType.Play.Client.SETTINGS
         ) {
             override fun onPacketReceiving(e: PacketEvent) {
-                e.packet.bytes.write(1, 0)
+                val x = e.packet.structures.read(0)
+                x.integers.write(1, 0)
+                e.packet.structures.write(0, x)
             }
         })
 

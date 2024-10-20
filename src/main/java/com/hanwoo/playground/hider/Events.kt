@@ -59,7 +59,6 @@ class Events : Listener {
         player.compassTarget = getSpawnLocation(player.uniqueId)
         player.isGlowing = true
         enteredSpawn[player.uniqueId] = false
-        Bukkit.getScoreboardManager().mainScoreboard.getTeam("Player")?.addEntry(fakeName)
         playerSession[player.uniqueId] = generateSessionString()
 
         PacketManager.sendJoinPackets(player)

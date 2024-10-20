@@ -31,7 +31,7 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <outputFile>${env.OUTPUT_FILE}</outputFile>
+                            <outputFile>C:\Users\Hyun\Downloads\Server\plugins\playground-1.0.jar</outputFile>
                         </configuration>
                     </execution>
                 </executions>
