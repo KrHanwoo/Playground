@@ -6,7 +6,6 @@ import net.kyori.adventure.text.JoinConfiguration
 import net.kyori.adventure.text.format.TextColor
 import org.bukkit.Bukkit
 import java.text.SimpleDateFormat
-import java.util.*
 import kotlin.math.roundToInt
 
 class TabInfo : Runnable {

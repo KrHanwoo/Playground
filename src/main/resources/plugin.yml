@@ -1,7 +1,7 @@
 name: Playground
 version: '${project.version}'
 main: com.hanwoo.playground.Playground
-api-version: 1.19
+api-version: 1.21
 depend:
   - ProtocolLib
 

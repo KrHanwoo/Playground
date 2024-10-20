@@ -13,7 +13,6 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import org.bukkit.*
 import org.bukkit.plugin.java.JavaPlugin
-import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
 import java.io.File
 import java.time.Duration

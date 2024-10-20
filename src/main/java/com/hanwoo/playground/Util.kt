@@ -2,8 +2,8 @@ package com.hanwoo.playground
 
 import com.comphenix.protocol.wrappers.EnumWrappers
 import com.comphenix.protocol.wrappers.PlayerInfoData
-import com.comphenix.protocol.wrappers.WrappedChatComponent
 import com.comphenix.protocol.wrappers.WrappedGameProfile
+import com.comphenix.protocol.wrappers.WrappedRemoteChatSessionData
 import com.hanwoo.playground.hider.skin
 import com.hanwoo.playground.misc.TeamManager.team
 import net.kyori.adventure.text.Component
@@ -79,7 +79,7 @@ fun WrappedGameProfile.playerInfoData(gameMode: EnumWrappers.NativeGameMode = En
         gameMode,
         this,
         null,
-        null
+        null as WrappedRemoteChatSessionData?
     )
 }
 

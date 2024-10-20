@@ -39,7 +39,7 @@ object Emote {
 
     init {
         register(listOf("angry", "grrr")) {
-            it.headParticle(Particle.VILLAGER_ANGRY)
+            it.headParticle(Particle.ANGRY_VILLAGER)
         }
         register(listOf("love", "heart")) {
             it.headParticle(Particle.HEART)

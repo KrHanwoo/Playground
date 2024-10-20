@@ -12,8 +12,8 @@ import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Sound
-import org.bukkit.craftbukkit.v1_19_R2.CraftWorld
-import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack
+import org.bukkit.craftbukkit.v1_21_R1.CraftWorld
+import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
@@ -103,6 +103,7 @@ class Events : Listener {
         e.reason("Server Restart".comp(0xffed7a))
     }
 
+    @Suppress("DEPRECATION")
     @EventHandler
     fun onDeath(e: PlayerDeathEvent) {
         e.deathMessage()?.let {
@@ -149,18 +150,18 @@ class Events : Listener {
     @EventHandler
     fun onDamageByBlock(e: EntityDamageByBlockEvent) {
         if (e.cause != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) return
-        e.damage = e.damage / 2
+        e.damage /= 2
     }
 
     @EventHandler
     fun onDamageByEntity(e: EntityDamageByEntityEvent) {
         if (!listOf(
-                EntityType.ENDER_CRYSTAL,
-                EntityType.PRIMED_TNT,
-                EntityType.MINECART_TNT
+                EntityType.END_CRYSTAL,
+                EntityType.TNT,
+                EntityType.TNT_MINECART
             ).contains(e.damager.type)
         ) return
-        e.damage = e.damage / 2
+        e.damage /= 2
     }
 
     @EventHandler
@@ -179,6 +180,7 @@ class Events : Listener {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun setPvpCooldown(player: Player) {
         if ((pvpCooldown[player.uniqueId] ?: 0) < System.currentTimeMillis()) {
             player.showTitle(
@@ -259,7 +261,7 @@ class Events : Listener {
 
     private fun dropItems(player: Player, delay: Boolean = false) {
         val drops = mutableListOf<ItemStack>()
-        player.inventory.contents?.filterNotNull()?.forEach { item ->
+        player.inventory.contents.filterNotNull().forEach { item ->
             val clonedItem = item.clone()
             val amount = item.amount
             repeat(amount) {
@@ -285,6 +287,7 @@ class Events : Listener {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun spawnNotify(player: Player) {
         if (player.atSpawn) {
             if (enteredSpawn[player.uniqueId] == true) return

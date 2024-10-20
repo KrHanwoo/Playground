@@ -12,7 +12,6 @@ import com.comphenix.protocol.wrappers.WrappedGameProfile
 import com.comphenix.protocol.wrappers.WrappedSignedProperty
 import com.hanwoo.playground.*
 import com.hanwoo.playground.misc.GlobalLogger
-import com.hanwoo.playground.misc.TeamManager
 import com.hanwoo.playground.misc.TeamManager.hasTeam
 import com.hanwoo.playground.misc.TeamManager.team
 import org.bukkit.Bukkit
@@ -30,7 +29,7 @@ object PacketManager {
             PacketType.Play.Client.SETTINGS
         ) {
             override fun onPacketReceiving(e: PacketEvent) {
-                e.packet.integers.write(1, 0)
+                e.packet.bytes.write(1, 0)
             }
         })
 
