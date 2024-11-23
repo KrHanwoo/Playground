@@ -27,7 +27,7 @@ class EmoteHandler: CommandExecutor, TabCompleter {
         args: Array<out String>
     ): MutableList<String> {
         if (args.size == 1)
-            return Emote.emotes.keys.flatten()
+            return Emote.emotes.keys.toTypedArray().flatten()
                 .filter { it.lowercase().startsWith(args[0].lowercase()) }
                 .toMutableList()
         return mutableListOf()

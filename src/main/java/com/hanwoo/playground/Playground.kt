@@ -12,6 +12,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import org.bukkit.*
+import org.bukkit.entity.Entity
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scoreboard.Team
 import java.io.File
@@ -26,6 +27,7 @@ val playerSession = mutableMapOf<UUID, String>()
 val logsFolder = File(Bukkit.getPluginsFolder().parentFile, "PlaygroundLogs")
 val pvpCooldown = mutableMapOf<UUID, Long>()
 var restartTime: Long = System.currentTimeMillis() + 1000 * 60 * 60 * 12
+val emoteEntities = mutableListOf<Entity>()
 
 class Playground : JavaPlugin() {
     init {
@@ -104,6 +106,7 @@ class Playground : JavaPlugin() {
     }
 
     override fun onDisable() {
+        emoteEntities.forEach { it.remove() }
         TeamManager.closeWriters()
         GlobalLogger.closeWriter()
     }

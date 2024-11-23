@@ -1,5 +1,6 @@
 package com.hanwoo.playground.hider
 
+import com.destroystokyo.paper.event.entity.PhantomPreSpawnEvent
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent
 import com.hanwoo.playground.*
 import com.hanwoo.playground.misc.GlobalLogger
@@ -8,14 +9,12 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.title.Title
 import net.minecraft.world.InventoryUtils
-import org.bukkit.Bukkit
-import org.bukkit.ChatColor
-import org.bukkit.Location
-import org.bukkit.Sound
+import org.bukkit.*
 import org.bukkit.craftbukkit.v1_21_R1.CraftWorld
 import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.EntityType
+import org.bukkit.entity.Phantom
 import org.bukkit.entity.Player
 import org.bukkit.entity.Projectile
 import org.bukkit.event.Event
@@ -233,6 +232,7 @@ class Events : Listener {
     @EventHandler
     fun onBed(e: PlayerBedEnterEvent) {
         e.setUseBed(Event.Result.DENY)
+        e.player.setStatistic(Statistic.TIME_SINCE_REST, 0)
     }
 
     @EventHandler

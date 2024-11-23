@@ -6,6 +6,7 @@ import net.kyori.adventure.text.JoinConfiguration
 import net.kyori.adventure.text.format.TextColor
 import org.bukkit.Bukkit
 import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.roundToInt
 
 class TabInfo : Runnable {
@@ -14,6 +15,10 @@ class TabInfo : Runnable {
     private val colOk = TextColor.color(255, 203, 59)
     private val colBad = TextColor.color(255, 84, 69)
     private val dateFormatter = SimpleDateFormat("yyyy/MM/dd HH:mm:ss")
+
+    init {
+        dateFormatter.timeZone = TimeZone.getTimeZone("Asia/Seoul")
+    }
 
     override fun run() {
         val date = comps(
@@ -50,7 +55,7 @@ class TabInfo : Runnable {
             )
             it.sendPlayerListHeaderAndFooter(
                 header,
-                Component.join(JoinConfiguration.newlines(), date,restartTime, serverInfo )
+                Component.join(JoinConfiguration.newlines(), date, restartTime, serverInfo)
             )
         }
     }
