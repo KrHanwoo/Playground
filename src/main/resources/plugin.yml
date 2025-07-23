@@ -1,0 +1,4 @@
+name: Playground
+version: '1.0'
+main: dev.chwoo.playground.Playground
+api-version: '1.21'
