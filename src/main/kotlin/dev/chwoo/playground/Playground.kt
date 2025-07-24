@@ -17,6 +17,7 @@ import org.bukkit.GameRule
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ShapedRecipe
+import org.bukkit.inventory.ShapelessRecipe
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scoreboard.Team
 import java.io.File
@@ -87,16 +88,25 @@ class Playground : JavaPlugin() {
     }
 
     private fun registerRecipe() {
-        val key = NamespacedKey(this, "stealth_potion")
-        val recipe = ShapedRecipe(key, stealthPotion)
-        recipe.shape(" P ", "TDW", " S ")
-        recipe.setIngredient('P', Material.PRISMARINE_SHARD)
-        recipe.setIngredient('T', Material.TURTLE_SCUTE)
-        recipe.setIngredient('D', Material.DRAGON_BREATH)
-        recipe.setIngredient('W', Material.WITHER_SKELETON_SKULL)
-        recipe.setIngredient('S', Material.SCULK_SENSOR)
+        ShapelessRecipe(NamespacedKey(this, "stealth_potion"), stealthPotion).apply {
+            addIngredient(Material.PRISMARINE_SHARD)
+            addIngredient(Material.TURTLE_SCUTE)
+            addIngredient(Material.DRAGON_EGG)
+            addIngredient(Material.WITHER_SKELETON_SKULL)
+            addIngredient(Material.SCULK_SENSOR)
+            addIngredient(Material.GLASS_BOTTLE)
+            server.addRecipe(this)
+        }
 
-        server.addRecipe(recipe)
+        ShapedRecipe(NamespacedKey(this, "tracker"), tracker).apply {
+            shape("ICI", "KSK", "INI")
+            setIngredient('I', Material.IRON_INGOT)
+            setIngredient('C', Material.SCULK_CATALYST)
+            setIngredient('K', Material.OMINOUS_TRIAL_KEY)
+            setIngredient('S', Material.NETHER_STAR)
+            setIngredient('N', Material.NETHERITE_INGOT)
+            server.addRecipe(this)
+        }
     }
 
     private fun createTeam(name: String, color: NamedTextColor?) {

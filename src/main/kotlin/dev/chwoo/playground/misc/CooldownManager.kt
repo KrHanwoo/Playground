@@ -27,8 +27,8 @@ object CooldownManager {
     val totemUsedTime = mutableMapOf<UUID, Int>()
     val potionUsedTime = mutableMapOf<UUID, Int>()
 
-    val totemCooldown: Int = 20 * 30
-    val potionCooldown: Int = 20 * 20 * 10
+    val totemCooldown: Int = 20 * 60 * 5
+    val potionCooldown: Int = 20 * 60 * 15
     val compassCooldown: Int = 0
 
 
