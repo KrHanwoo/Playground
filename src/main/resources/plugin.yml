@@ -2,3 +2,16 @@ name: Playground
 version: '1.0'
 main: dev.chwoo.playground.Playground
 api-version: '1.21'
+depend:
+  - ProtocolLib
+
+commands:
+  e:
+    permission: playground.emote
+    aliases:
+      - emote
+      - ㄷ
+
+permissions:
+  playground.emote:
+    default: true
