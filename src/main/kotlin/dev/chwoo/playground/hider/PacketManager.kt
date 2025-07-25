@@ -101,18 +101,15 @@ object PacketManager {
 
             player.team.broadcast(chat)
             player.team.log(chat.text)
-            GlobalLogger.log(chat.text)
 
-            if (player.hasTeam) {
-                val teamChat = "[Team-${player.team.name}] <${player.name}> $msg".comp()
-                players.filter { it.uniqueId != player.uniqueId }
-                    .filter { it.isOp }.forEach { it.sendMessage(teamChat) }
-                Bukkit.getConsoleSender().sendMessage(teamChat)
-                return@addReceiver
-            }
+            var opChat = chat
+            if (player.hasTeam)
+                opChat = "[Team-${player.team.name}] <${player.name}> $msg".comp()
+
+            GlobalLogger.log(opChat.text)
             players.filter { it.uniqueId != player.uniqueId }
-                .filter { it.isOp }.forEach { it.sendMessage(chat) }
-            Bukkit.getConsoleSender().sendMessage(chat)
+                .filter { it.isOp }.forEach { it.sendMessage(opChat) }
+            Bukkit.getConsoleSender().sendMessage(opChat)
         }
     }
 

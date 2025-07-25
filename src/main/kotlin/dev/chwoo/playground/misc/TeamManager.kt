@@ -67,6 +67,8 @@ object TeamManager {
 }
 
 data class GameTeam(val name: String, val players: List<UUID>, val writer: PrintWriter?, val guest: Boolean = false) {
+    var compassCooldownUntil: Int = 0
+
     fun log(text: String) {
         writer ?: return
         val msg = "${logFormatter.format(getTime())} $text"

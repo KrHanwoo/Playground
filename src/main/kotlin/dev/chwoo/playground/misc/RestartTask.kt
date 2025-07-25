@@ -4,7 +4,6 @@ import dev.chwoo.playground.comp
 import dev.chwoo.playground.loop
 import dev.chwoo.playground.players
 import dev.chwoo.playground.plugin
-import dev.chwoo.playground.restartInterval
 import dev.chwoo.playground.restartTime
 import net.kyori.adventure.title.Title
 import org.bukkit.Bukkit
@@ -26,12 +25,30 @@ class RestartTask {
 
     fun task() {
         val timeLeft = (restartTime - System.currentTimeMillis()) / 1000
+        if (timeLeft in 60 * 30 - 1..60 * 30) players.forEach {
+            it.showTitle(
+                Title.title(
+                    "".comp(),
+                    "서버가 30분 후 재시작됩니다".comp(YELLOW),
+                    titleTime
+                )
+            )
+        }
+        if (timeLeft in 60 * 15 - 1..60 * 15) players.forEach {
+            it.showTitle(
+                Title.title(
+                    "".comp(),
+                    "서버가 15분 후 재시작됩니다".comp(GOLD),
+                    titleTime
+                )
+            )
+        }
         if (timeLeft in 5..30)
             players.forEach {
                 it.showTitle(
                     Title.title(
                         "".comp(),
-                        "Server will restart soon".comp(RED),
+                        "서버가 곧 재시작됩니다".comp(RED),
                         titleTime
                     )
                 )
@@ -40,7 +57,7 @@ class RestartTask {
             Bukkit.getOnlinePlayers().forEach {
                 it.showTitle(
                     Title.title(
-                        "Server Restart".comp(DARK_RED),
+                        "서버 재시작".comp(DARK_RED),
                         "".comp(),
                         titleTime
                     )

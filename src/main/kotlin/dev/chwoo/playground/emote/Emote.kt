@@ -98,7 +98,7 @@ object Emote {
         }
         register("tear", "sob", "sad") {
             for (i in 0..1) {
-                val v = Vector(-0.1 + i * 0.2, 0.1, 0.4)
+                val v = Vector((-1 * 2 * i) * 0.11, 0.1, 0.4)
                 v.rotateAroundX(Math.toRadians(it.pitch.toDouble())).rotateAroundY(Math.toRadians(-it.yaw.toDouble()))
                 it.clone().add(v.x, 1.3 + v.y, v.z).spreadParticle(Particle.FALLING_WATER, 1, 0.0, 1.0)
             }
@@ -131,10 +131,10 @@ object Emote {
                             d.interpolationDelay = 0
                             d.interpolationDuration = 15
                             d.transformation = Transformation(
-                                Vector3f(0f,0f,0f),
-                                Quaternionf(0f,0f,0f,1f),
-                                Vector3f(0f,0f,0f),
-                                Quaternionf(0f,0f,0f,1f)
+                                Vector3f(0f, 0f, 0f),
+                                Quaternionf(0f, 0f, 0f, 1f),
+                                Vector3f(0f, 0f, 0f),
+                                Quaternionf(0f, 0f, 0f, 1f)
                             )
                             Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, {
                                 d.remove()
@@ -142,7 +142,7 @@ object Emote {
                             }, 15)
                         }, 10)
 
-                    }, (4*idx).toLong())
+                    }, (4 * idx).toLong())
                 }
             }
         }

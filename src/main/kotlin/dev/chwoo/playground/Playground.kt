@@ -70,9 +70,9 @@ class Playground : JavaPlugin() {
 
         Bukkit.getOnlinePlayers().forEach { playerSession[it.uniqueId] = generateSessionString() }
 
-        plugin.loop(1) {
+        plugin.loop {
             pvpCooldown.filter { it.value > System.currentTimeMillis() }.forEach {
-                it.key.player?.sendActionBar("PVP MODE".comp(DARK_RED).decorate(BOLD))
+                it.key.player?.sendActionBar("전투 상태".comp(DARK_RED).decorate(BOLD))
             }
         }
 

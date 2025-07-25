@@ -6,6 +6,7 @@ import com.comphenix.protocol.events.PacketContainer
 import com.comphenix.protocol.wrappers.MinecraftKey
 import dev.chwoo.playground.comp
 import dev.chwoo.playground.fakeName
+import dev.chwoo.playground.misc.TeamManager.team
 import dev.chwoo.playground.players
 import dev.chwoo.playground.plugin
 import net.kyori.adventure.key.Key
@@ -29,14 +30,14 @@ object CooldownManager {
 
     val totemCooldown: Int = 20 * 60 * 5
     val potionCooldown: Int = 20 * 60 * 15
-    val compassCooldown: Int = 0
+    val compassCooldown: Int = 20 * 60 * 30
 
 
     fun canUse(player: Player, item: CooldownItem): Boolean {
         return when (item) {
             CooldownItem.TOTEM -> checkTicks(totemUsedTime[player.uniqueId], totemCooldown)
             CooldownItem.POTION -> checkTicks(potionUsedTime[player.uniqueId], potionCooldown)
-            CooldownItem.COMPASS -> TODO()
+            CooldownItem.COMPASS -> player.team.compassCooldownUntil <= Bukkit.getCurrentTick()
         }
     }
 
@@ -44,7 +45,7 @@ object CooldownManager {
         when (item) {
             CooldownItem.TOTEM -> totemUsedTime[player.uniqueId] = Bukkit.getCurrentTick()
             CooldownItem.POTION -> potionUsedTime[player.uniqueId] = Bukkit.getCurrentTick()
-            CooldownItem.COMPASS -> TODO()
+            CooldownItem.COMPASS -> player.team.compassCooldownUntil = Bukkit.getCurrentTick() + compassCooldown
         }
         update(player)
     }
@@ -52,22 +53,22 @@ object CooldownManager {
     fun update(player: Player) {
         player.setCooldown(Material.TOTEM_OF_UNDYING, getCooldown(totemUsedTime[player.uniqueId], totemCooldown))
         player.setCooldown(potionCooldownKey, getCooldown(potionUsedTime[player.uniqueId], potionCooldown))
-
+        player.setCooldown(compassCooldownKey, getCooldown(player.team.compassCooldownUntil, compassCooldown))
     }
 
     fun getCooldown(player: Player, item: CooldownItem): Int {
         return when (item) {
             CooldownItem.TOTEM -> getCooldown(totemUsedTime[player.uniqueId], totemCooldown)
             CooldownItem.POTION -> getCooldown(potionUsedTime[player.uniqueId], potionCooldown)
-            CooldownItem.COMPASS -> TODO()
+            CooldownItem.COMPASS -> (player.team.compassCooldownUntil - Bukkit.getCurrentTick()).coerceAtLeast(0)
         }
     }
 
     private fun checkTicks(value: Int?, cooldown: Int): Boolean {
-        return (value ?: 0) + cooldown <= Bukkit.getCurrentTick()
+        return (if (value != null) value + cooldown else 0) <= Bukkit.getCurrentTick()
     }
 
     private fun getCooldown(value: Int?, cooldown: Int): Int {
-        return ((value ?: 0) + cooldown - Bukkit.getCurrentTick()).coerceAtLeast(0)
+        return ((if (value != null) value + cooldown else 0) - Bukkit.getCurrentTick()).coerceAtLeast(0)
     }
 }

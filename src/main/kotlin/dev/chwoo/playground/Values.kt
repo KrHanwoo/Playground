@@ -35,16 +35,15 @@ val logsFolder = File(Bukkit.getPluginsFolder().parentFile, "PlaygroundLogs")
 val pvpCooldown = mutableMapOf<UUID, Long>()
 val emoteEntities = mutableListOf<Entity>()
 
-const val restartInterval: Long = 1000 * 60 * 60 * 12
-val restartTime: Long = System.currentTimeMillis() + restartInterval
+val restartTime: Long = getNextRestartTime()
 
 val playerStealthUntil = mutableMapOf<UUID, Int>()
 
 @Suppress("UnstableApiUsage")
 val stealthPotion = ItemStack(Material.POTION).apply {
     itemMeta = (itemMeta as PotionMeta).apply {
-        customName("은신의 물약".comp().removeItalic())
-        itemName("은신의 물약".comp())
+        customName("은신 물약".comp().removeItalic())
+        itemName("은신 물약".comp())
         setRarity(ItemRarity.RARE)
         setEnchantmentGlintOverride(true)
         color = Color.fromRGB(0xbbbbbb)
@@ -78,4 +77,10 @@ val tracker = ItemStack(Material.RECOVERY_COMPASS).apply {
             DamageReduction.damageReduction().base(0f).factor(0f).build()
         ).build()
     setData(DataComponentTypes.BLOCKS_ATTACKS, builder)
+    addItemFlags(ItemFlag.HIDE_ENCHANTS)
+    lore(
+        listOf(
+            "소실 저주".comp(NamedTextColor.RED).removeItalic()
+        )
+    )
 }

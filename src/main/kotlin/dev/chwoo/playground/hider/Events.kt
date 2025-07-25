@@ -1,57 +1,30 @@
 package dev.chwoo.playground.hider
 
-import com.comphenix.protocol.wrappers.EnumWrappers
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent
-import dev.chwoo.playground.atSpawn
-import dev.chwoo.playground.comp
-import dev.chwoo.playground.comps
-import dev.chwoo.playground.delay
-import dev.chwoo.playground.generateSessionString
+import dev.chwoo.playground.*
 import dev.chwoo.playground.misc.CooldownManager
+import dev.chwoo.playground.misc.CooldownManager.getCooldown
+import dev.chwoo.playground.misc.CooldownManager.potionCooldownKey
 import dev.chwoo.playground.misc.GlobalLogger
+import dev.chwoo.playground.misc.TeamManager.hasTeam
 import dev.chwoo.playground.misc.TeamManager.team
-import dev.chwoo.playground.playerSession
-import dev.chwoo.playground.playerStealthUntil
-import dev.chwoo.playground.plugin
-import dev.chwoo.playground.pvpCooldown
-import dev.chwoo.playground.spawnSeed
-import dev.chwoo.playground.stealthPotion
-import dev.chwoo.playground.text
-import dev.chwoo.playground.tracker
-import io.papermc.paper.event.player.PlayerArmSwingEvent
 import io.papermc.paper.event.player.PlayerItemGroupCooldownEvent
-import io.papermc.paper.event.player.PlayerShieldDisableEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
-import net.kyori.adventure.title.Title
 import net.kyori.adventure.text.format.NamedTextColor.*
-import net.minecraft.core.Direction
+import net.kyori.adventure.title.Title
 import net.minecraft.world.Containers
-import net.minecraft.world.InteractionHand
-import net.minecraft.world.level.block.BeaconBlock
-import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.state.BlockBehaviour
-import net.minecraft.world.phys.BlockHitResult
-import net.minecraft.world.phys.Vec3
 import org.bukkit.*
 import org.bukkit.craftbukkit.CraftWorld
-import org.bukkit.craftbukkit.block.CraftBlock
-import org.bukkit.craftbukkit.block.CraftBlockState
-import org.bukkit.craftbukkit.block.data.CraftBlockData
-import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
-import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.entity.Projectile
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.block.Action
 import org.bukkit.event.block.SignChangeEvent
-import org.bukkit.event.entity.EntityDamageByBlockEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityPotionEffectEvent
 import org.bukkit.event.entity.EntityResurrectEvent
 import org.bukkit.event.entity.PlayerDeathEvent
@@ -59,7 +32,6 @@ import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.inventory.PrepareAnvilEvent
 import org.bukkit.event.player.*
-import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.time.Duration
@@ -68,6 +40,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.floor
+import kotlin.math.round
 
 class Events : Listener {
 
@@ -89,8 +62,8 @@ class Events : Listener {
         }
         e.joinMessage(null)
         val player = e.player
-        player.compassTarget = getSpawnLocation(player.uniqueId)
-        player.isGlowing = true
+        player.compassTarget = Bukkit.getWorlds().first().spawnLocation
+        player.isGlowing = (playerStealthUntil[player.uniqueId] ?: 0) <= Bukkit.getCurrentTick()
         enteredSpawn[player.uniqueId] = false
         playerSession[player.uniqueId] = generateSessionString()
 
@@ -98,7 +71,6 @@ class Events : Listener {
         spawnNotify(e.player)
         CooldownManager.update(e.player)
 
-        player.isGlowing = (playerStealthUntil[player.uniqueId] ?: 0) <= Bukkit.getCurrentTick()
     }
 
     @EventHandler
@@ -135,7 +107,7 @@ class Events : Listener {
     @EventHandler
     fun onRestart(e: PlayerKickEvent) {
         if (e.cause != PlayerKickEvent.Cause.RESTART_COMMAND) return
-        e.reason("Server Restart".comp(0xffed7a))
+        e.reason("서버 재시작".comp(0xffed7a))
     }
 
     @EventHandler
@@ -156,9 +128,9 @@ class Events : Listener {
         )
         val killer = e.entity.killer
         val flag = (killer is Player) && (killer.uniqueId != e.player.uniqueId)
-        val message = "A player died".comp(if (flag) DARK_RED else RED).hoverEvent(hover)
+        val message = "누군가 죽었다.".comp(if (flag) DARK_RED else RED).hoverEvent(hover)
         Bukkit.getOnlinePlayers().filter { it.team != e.player.team }.forEach { it.sendMessage(message) }
-        val teamMsg = "${e.player.name} died".comp(if (flag) DARK_RED else RED).hoverEvent(hover)
+        val teamMsg = "${e.player.name} 사망".comp(if (flag) DARK_RED else RED).hoverEvent(hover)
         e.player.team.broadcast(teamMsg)
 
         if (flag) e.deathMessage()?.text?.let { killer.team.log(it) }
@@ -218,7 +190,7 @@ class Events : Listener {
             player.showTitle(
                 Title.title(
                     "".comp(),
-                    "PVP MODE".comp(RED),
+                    "전투 상태".comp(RED),
                     Title.Times.times(Duration.ofSeconds(0), Duration.ofSeconds(2), Duration.ofSeconds(1))
                 )
             )
@@ -314,7 +286,11 @@ class Events : Listener {
     @EventHandler
     fun onConsume(e: PlayerItemConsumeEvent) {
         if (!e.item.isSimilar(stealthPotion)) return
-        if (CooldownManager.canUse(e.player, CooldownManager.CooldownItem.POTION)) {
+        if (CooldownManager.canUse(
+                e.player,
+                CooldownManager.CooldownItem.POTION
+            ) && (restartTime - System.currentTimeMillis()) / 1000 > 60 * 15
+        ) {
             CooldownManager.use(e.player, CooldownManager.CooldownItem.POTION)
             e.player.isGlowing = false
             playerStealthUntil[e.player.uniqueId] = Bukkit.getCurrentTick() + 20 * 60 * 5
@@ -336,24 +312,62 @@ class Events : Listener {
 
     @EventHandler
     fun onCooldown(e: PlayerItemGroupCooldownEvent) {
-        if (e.cooldownGroup == CooldownManager.potionCooldownKey) {
-            e.cooldown = CooldownManager.getCooldown(e.player, CooldownManager.CooldownItem.POTION)
+        if (e.cooldownGroup == potionCooldownKey) {
+            e.cooldown = getCooldown(e.player, CooldownManager.CooldownItem.POTION)
+        } else if (e.cooldownGroup == CooldownManager.compassCooldownKey) {
+            e.cooldown = getCooldown(e.player, CooldownManager.CooldownItem.COMPASS)
         }
     }
 
     @EventHandler
     fun onInteract(e: PlayerInteractEvent) {
-        plugin.delay(0) {
-            if (!e.player.isHandRaised) return@delay
+        val player = e.player
+        plugin.delay {
+            if (!player.isHandRaised) return@delay
             val hand = e.hand ?: return@delay
-            if (!e.player.inventory.getItem(hand).isSimilar(tracker)) return@delay
-            Bukkit.broadcast("USED".comp(0xff0000))
+            val item = player.inventory.getItem(hand)
+            if (!item.isSimilar(tracker)) return@delay
+            if (!CooldownManager.canUse(player, CooldownManager.CooldownItem.COMPASS)) return@delay
+            val targets = players.filter {
+                !it.isOp && it.gameMode == GameMode.SURVIVAL && !player.team.players.contains(it.uniqueId)
+            }
+            val nearest = targets.filter { player.location.world == it.location.world }
+                .minOfOrNull { player.location.distance(it.location) }
+            if (nearest == null || (restartTime - System.currentTimeMillis()) / 1000 <= 60 * 30) {
+                player.location.world.playSound(player, Sound.ENTITY_ITEM_BREAK, 1f, 1f)
+                player.team.compassCooldownUntil = Bukkit.getCurrentTick() + 20
+            } else {
+                player.location.world.playSound(player, Sound.ITEM_LODESTONE_COMPASS_LOCK, 1.5f, .5f)
+                player.location.world.playSound(player, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, .9f)
+                CooldownManager.use(player, CooldownManager.CooldownItem.COMPASS)
+                val chat = comps(
+                    "[${player.name}] ".comp(),
+                    "가장 가까운 적까지의 거리: ".comp(0xfcffad),
+                    "${"%,d".format(round(nearest).toInt())}블록".comp(0x8cddff)
+                )
+                player.team.broadcast(chat)
+
+                var opChat = chat
+                if (player.hasTeam)
+                    opChat = comps("[Team-${player.team.name}] ".comp(), chat)
+
+                player.team.log(chat.text)
+                GlobalLogger.log(opChat.text)
+                players.filter { it.uniqueId != player.uniqueId }
+                    .filter { it.isOp }.forEach { it.sendMessage(opChat) }
+                Bukkit.getConsoleSender().sendMessage(opChat)
+            }
+            player.team.players.forEach { it.player?.let { p -> CooldownManager.update(p) } }
         }
     }
 
     private fun dropItems(player: Player, delay: Boolean = false) {
         val drops = mutableListOf<ItemStack>()
         player.inventory.contents.filterNotNull().forEach { item ->
+            if (item.isSimilar(tracker)) {
+                item.amount = 0
+                return@forEach
+            }
             val clonedItem = item.clone()
             val amount = item.amount
             repeat(amount) {
@@ -364,11 +378,8 @@ class Events : Listener {
         }
         val loc = player.location
 
-        if (delay) {
-            Bukkit.getScheduler().scheduleSyncDelayedTask(plugin) {
-                itemDrop(drops, loc)
-            }
-            return
+        if (delay) return plugin.delay {
+            itemDrop(drops, loc)
         }
         itemDrop(drops, loc)
     }

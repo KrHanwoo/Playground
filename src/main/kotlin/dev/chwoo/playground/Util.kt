@@ -14,6 +14,9 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import java.time.Clock
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.*
 
 val sessionChars = ('A'..'Z') + ('0'..'9')
@@ -104,11 +107,19 @@ fun getTime(): Date {
     return Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul")).time
 }
 
-fun JavaPlugin.delay(ticks: Long, function: () -> Unit) {
+fun getNextRestartTime(): Long {
+    val now = LocalDateTime.now()
+    var next5am = now.withHour(5).withMinute(0).withSecond(0).withNano(0)
+    if (now.isAfter(next5am)) next5am = next5am.plusDays(1)
+
+    return next5am.toEpochSecond(ZoneOffset.of("+09:00")) * 1000
+}
+
+fun JavaPlugin.delay(ticks: Long = 0, function: () -> Unit) {
     Bukkit.getScheduler().runTaskLater(this, Runnable { function() }, ticks)
 }
 
-fun JavaPlugin.loop(interval: Long, delay: Long = 0, function: () -> Unit) {
+fun JavaPlugin.loop(interval: Long = 0, delay: Long = 0, function: () -> Unit) {
     Bukkit.getScheduler().runTaskTimer(this, Runnable { function() }, delay, interval)
 }
 
