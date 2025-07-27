@@ -25,6 +25,8 @@ import dev.chwoo.playground.misc.TeamManager.team
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 import org.bukkit.Bukkit
 import org.bukkit.World
+import org.bukkit.craftbukkit.CraftOfflinePlayer
+import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.entity.Player
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -52,8 +54,7 @@ object PacketManager {
         }
 
         addSender(Server.PLAYER_INFO_REMOVE) { e ->
-            if (e.player.isOp) return@addSender
-            e.isCancelled = true
+            if (!e.player.isOp) e.isCancelled = true
         }
 
         addReceiver(Client.CHAT) { e ->
@@ -127,18 +128,34 @@ object PacketManager {
         }
 
         if (!player.isOp) {
-            val packet = PacketContainer(Server.PLAYER_INFO)
-            val playerDataList = mutableListOf<PlayerInfoData>()
-            for (offlinePlayer in Bukkit.getOfflinePlayers().asSequence()) {
-                val profile = if (offlinePlayer is Player) WrappedGameProfile.fromPlayer(offlinePlayer)
-                else WrappedGameProfile.fromOfflinePlayer(offlinePlayer)
-                playerDataList += profile.withName(offlinePlayer.name).fakeProfile(player)
-                    .playerInfoData()
-            }
+            let {
+                val packet = PacketContainer(Server.PLAYER_INFO)
+                val playerDataList = mutableListOf<PlayerInfoData>()
+                for (offlinePlayer in Bukkit.getOfflinePlayers()) {
+                    if (offlinePlayer.uniqueId.player != null) continue
+                    if (offlinePlayer.uniqueId == player.uniqueId) continue
+                    val name =
+                        if (offlinePlayer.uniqueId in player.team.players) offlinePlayer.name else fakeName
+                    val profile = WrappedGameProfile(offlinePlayer.uniqueId, name)
+                    playerDataList += profile.playerInfoData()
+                }
 
-            packet.playerInfoActions.write(0, mutableSetOf(EnumWrappers.PlayerInfoAction.ADD_PLAYER))
-            packet.playerInfoDataLists.write(1, playerDataList)
-            ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet)
+                packet.playerInfoActions.write(0, mutableSetOf(EnumWrappers.PlayerInfoAction.ADD_PLAYER))
+                packet.playerInfoDataLists.write(1, playerDataList)
+                ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet)
+            }
+            let {
+                players.filter { it.isOp }.forEach { p ->
+                    val packet = PacketContainer(Server.PLAYER_INFO)
+                    val profile = WrappedGameProfile(player.uniqueId, player.name).playerInfoData(player = p)
+
+                    packet.playerInfoActions.write(0, mutableSetOf(EnumWrappers.PlayerInfoAction.UPDATE_LISTED))
+                    packet.playerInfoDataLists.write(1, listOf(profile))
+                    plugin.delay {
+                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet)
+                    }
+                }
+            }
         }
 
         val team = player.team

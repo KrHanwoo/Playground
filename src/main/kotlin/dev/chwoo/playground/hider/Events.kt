@@ -8,6 +8,8 @@ import dev.chwoo.playground.misc.CooldownManager.potionCooldownKey
 import dev.chwoo.playground.misc.GlobalLogger
 import dev.chwoo.playground.misc.TeamManager.hasTeam
 import dev.chwoo.playground.misc.TeamManager.team
+import dev.chwoo.playground.text
+import io.papermc.paper.event.entity.TameableDeathMessageEvent
 import io.papermc.paper.event.player.PlayerItemGroupCooldownEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
@@ -359,6 +361,18 @@ class Events : Listener {
             }
             player.team.players.forEach { it.player?.let { p -> CooldownManager.update(p) } }
         }
+    }
+
+    @EventHandler
+    fun onTameableDeathMessage(e: TameableDeathMessageEvent){
+        e.isCancelled = true
+        val killer = e.entity.killer
+        val owner = e.entity.owner
+        val msg = e.deathMessage()
+        broadcastOP(msg)
+        GlobalLogger.log(msg.text)
+        if (killer is Player) killer.team.log(msg.text)
+        if (owner is Player) owner.team.log(msg.text)
     }
 
     private fun dropItems(player: Player, delay: Boolean = false) {

@@ -2,6 +2,7 @@ package dev.chwoo.playground
 
 import com.comphenix.protocol.wrappers.EnumWrappers
 import com.comphenix.protocol.wrappers.PlayerInfoData
+import com.comphenix.protocol.wrappers.WrappedChatComponent
 import com.comphenix.protocol.wrappers.WrappedGameProfile
 import com.comphenix.protocol.wrappers.WrappedRemoteChatSessionData
 import dev.chwoo.playground.hider.skin
@@ -68,7 +69,10 @@ fun serverDate(): Component {
     )
 }
 
-fun WrappedGameProfile.playerInfoData(gameMode: EnumWrappers.NativeGameMode = EnumWrappers.NativeGameMode.SURVIVAL, player: Player? = null): PlayerInfoData {
+fun WrappedGameProfile.playerInfoData(
+    gameMode: EnumWrappers.NativeGameMode = EnumWrappers.NativeGameMode.SURVIVAL,
+    player: Player? = null
+): PlayerInfoData {
     this.properties.removeAll("textures")
     this.properties.put("textures", skin)
     return PlayerInfoData(
@@ -77,15 +81,16 @@ fun WrappedGameProfile.playerInfoData(gameMode: EnumWrappers.NativeGameMode = En
         ((player?.isOp == true) && this.uuid != player.uniqueId),
         gameMode,
         this,
-        null,
+        if (player?.isOp == true) WrappedChatComponent.fromText(this.name) else null,
         null as WrappedRemoteChatSessionData?
     )
 }
 
 fun WrappedGameProfile.fakeProfile(player: Player): WrappedGameProfile {
-    val flag = player.isOp || player.team.players.contains(uuid)
+    if (this.uuid == player.uniqueId) return WrappedGameProfile(this.uuid, player.name)
+    val flag = player.isOp || this.uuid in player.team.players
     if (flag) return this
-    return WrappedGameProfile.fromHandle(this.handle).withName(fakeName)
+    return WrappedGameProfile(this.uuid, fakeName)
 }
 
 val Player.atSpawn: Boolean
