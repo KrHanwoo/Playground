@@ -98,7 +98,7 @@ object Emote {
         }
         register("tear", "sob", "sad") {
             for (i in 0..1) {
-                val v = Vector((-1 * 2 * i) * 0.11, 0.1, 0.4)
+                val v = Vector((-1 + 2 * i) * 0.11, 0.1, 0.4)
                 v.rotateAroundX(Math.toRadians(it.pitch.toDouble())).rotateAroundY(Math.toRadians(-it.yaw.toDouble()))
                 it.clone().add(v.x, 1.3 + v.y, v.z).spreadParticle(Particle.FALLING_WATER, 1, 0.0, 1.0)
             }

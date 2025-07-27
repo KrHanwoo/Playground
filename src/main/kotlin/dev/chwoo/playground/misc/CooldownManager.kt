@@ -1,21 +1,12 @@
 package dev.chwoo.playground.misc
 
-import com.comphenix.protocol.PacketType.Play.Server
-import com.comphenix.protocol.ProtocolLibrary
-import com.comphenix.protocol.events.PacketContainer
-import com.comphenix.protocol.wrappers.MinecraftKey
-import dev.chwoo.playground.comp
-import dev.chwoo.playground.fakeName
 import dev.chwoo.playground.misc.TeamManager.team
-import dev.chwoo.playground.players
 import dev.chwoo.playground.plugin
-import net.kyori.adventure.key.Key
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
-import java.util.UUID
-import kotlin.collections.get
+import java.util.*
 
 object CooldownManager {
     val potionCooldownKey = NamespacedKey(plugin, "potion")

@@ -46,7 +46,7 @@ object PacketManager {
         addSender(Server.PLAYER_INFO) { e ->
             val dataLists = e.packet.playerInfoDataLists
             val newData = dataLists.read(1).map {
-                it.profile.fakeProfile(e.player).playerInfoData(it.gameMode)
+                it.profile.fakeProfile(e.player).playerInfoData(it.gameMode, e.player)
             }
             dataLists.write(1, newData)
         }
@@ -86,7 +86,7 @@ object PacketManager {
                     else -> "NULL"
                 }
                 val publicChat = comps("[${session}]".comp(dimensionColor), " $msg".comp())
-                players.filter { it.atSpawn && !it.isOp && it.uniqueId != player.uniqueId }
+                players.filter { !it.isOp && it.uniqueId != player.uniqueId }
                     .forEach { it.sendMessage(publicChat) }
                 val logChat = comps(
                     "[${dimensionName}] [${session}]".comp(dimensionColor),
@@ -132,7 +132,8 @@ object PacketManager {
             for (offlinePlayer in Bukkit.getOfflinePlayers().asSequence()) {
                 val profile = if (offlinePlayer is Player) WrappedGameProfile.fromPlayer(offlinePlayer)
                 else WrappedGameProfile.fromOfflinePlayer(offlinePlayer)
-                playerDataList += profile.withName(offlinePlayer.name).fakeProfile(player).playerInfoData()
+                playerDataList += profile.withName(offlinePlayer.name).fakeProfile(player)
+                    .playerInfoData()
             }
 
             packet.playerInfoActions.write(0, mutableSetOf(EnumWrappers.PlayerInfoAction.ADD_PLAYER))
